@@ -34,7 +34,10 @@ async def main():
         print(f"Компания: {company.company_id}")
         print(f"Отрасль: {company.industry}")
 
-        result = await analyze_for_company(news, company)
+        result = await analyze_for_company(
+            news,
+            company
+        )
 
         print("\nАНАЛИЗ:")
         print(result["analysis"])
@@ -45,6 +48,15 @@ async def main():
                 f"{source['document']}, "
                 f"стр. {source['page']}"
             )
+
+        print("\nПРОВЕРКА ДОСТОВЕРНОСТИ:")
+        print(
+            "Проверки пройдены:",
+            result["validation"]["passed"]
+        )
+
+        for warning in result["validation"]["warnings"]:
+            print("Предупреждение:", warning)
 
 
 if __name__ == "__main__":

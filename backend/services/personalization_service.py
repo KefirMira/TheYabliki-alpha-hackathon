@@ -1,6 +1,8 @@
 ﻿
 from schemas.company import CompanyProfile
+
 from services.rag_service import analyze_with_rag
+from services.validation_service import validate_analysis
 
 
 async def analyze_for_company(
@@ -8,16 +10,15 @@ async def analyze_for_company(
     company: CompanyProfile
 ) -> dict:
     """
-    Анализирует новость с учётом профиля компании.
+    Анализирует новость для конкретной компании
+    и проверяет ответ на известные ошибки.
     """
 
-    # Преобразуем профиль компании в JSON
     company_data = company.model_dump_json(
         indent=2,
         exclude_none=True
     )
 
-    # Формируем персонализированный промпт
     question = f"""
 Проанализируй новость применительно к конкретной компании.
 
@@ -44,18 +45,30 @@ async def analyze_for_company(
 - Если данных недостаточно, укажи это.
 - Не считай отношение долга к выручке
   доказательством высокой долговой нагрузки.
+- Не делай вывод об экспорте по региону регистрации.
+- Нулевая кредитная экспозиция не означает,
+  что у компании отсутствуют все долги.
 """
 
-    # Полный промпт отправляем в LLM,
-    # а поиск выполняем только по новости
     result = await analyze_with_rag(
         question=question,
         search_query=news
     )
 
+    analysis = result["analysis"]
+
+    warnings = validate_analysis(
+        analysis=analysis,
+        company=company
+    )
+
     return {
         "company_id": company.company_id,
         "news": news,
-        "analysis": result["analysis"],
-        "sources": result["sources"]
+        "analysis": analysis,
+        "sources": result["sources"],
+        "validation": {
+            "passed": len(warnings) == 0,
+            "warnings": warnings
+        }
     }
