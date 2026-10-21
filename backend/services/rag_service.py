@@ -8,26 +8,10 @@ from openai import AsyncOpenAI
 from services.chunk_service import load_chunks
 from services.search_service import search_chunks
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Загружаем переменные из backend/.env
 load_dotenv(BASE_DIR / ".env")
-
-# Только после этого создаём клиент
-client = AsyncOpenAI(
-    api_key=os.environ["LLM_API_KEY"],
-    base_url=os.environ["LLM_BASE_URL"],
-    timeout=120.0
-)
-
-MODEL = os.environ["LLM_MODEL"]
-
-
-from services.chunk_service import load_chunks
-from services.search_service import search_chunks
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 client = AsyncOpenAI(
     api_key=os.environ["LLM_API_KEY"],
@@ -77,13 +61,11 @@ async def analyze_with_rag(question: str) -> dict:
                 "content": (
                     "Ты финансовый аналитик. "
                     "Используй предоставленные материалы "
-                    "Альфа-Банка для ответа на вопрос. "
-                    "Не выдумывай факты, прогнозы или цифры. "
-                    "Отделяй сведения из документов "
-                    "от собственных предположений. "
+                    "для ответа на вопрос. "
+                    "Не выдумывай факты или цифры. "
+                    "Отделяй факты от предположений. "
                     "Ссылайся на номера источников. "
-                    "Если информации недостаточно, "
-                    "сообщи об этом."
+                    "Отвечай кратко и по существу."
                 )
             },
             {
@@ -94,24 +76,30 @@ async def analyze_with_rag(question: str) -> dict:
                 )
             }
         ],
-        max_tokens=2000
+        max_tokens=4000
     )
 
-    
     choice = response.choices[0]
 
     print("\n========== LLM DEBUG ==========")
     print("Модель:", response.model)
     print("Причина завершения:", choice.finish_reason)
-    print("Текст ответа:", repr(choice.message.content))
-    print("Дополнительные поля:",
-          choice.message.model_extra)
     print("Использование токенов:", response.usage)
     print("================================\n")
 
+    analysis = choice.message.content or ""
+
+    if choice.finish_reason == "length":
+        print("ВНИМАНИЕ: ответ LLM обрезан по лимиту токенов.")
+
+    if not analysis.strip():
+        raise RuntimeError(
+            "LLM не вернула текст анализа. "
+            f"Причина завершения: {choice.finish_reason}"
+        )
 
     return {
-        "analysis": response.choices[0].message.content or "",
+        "analysis": analysis,
         "sources": [
             {
                 "id": index,
