@@ -1,7 +1,14 @@
 ﻿
+from schemas.analysis import (
+    CompanyAnalysisResponse,
+    ValidationResult
+)
 from schemas.company import CompanyProfile
 
 from services.rag_service import analyze_with_rag
+from services.structured_analysis_service import (
+    parse_structured_analysis
+)
 from services.validation_service import validate_analysis
 
 
@@ -10,8 +17,8 @@ async def analyze_for_company(
     company: CompanyProfile
 ) -> dict:
     """
-    Анализирует новость для конкретной компании
-    и проверяет ответ на известные ошибки.
+    Возвращает структурированный анализ новости
+    для конкретной компании.
     """
 
     company_data = company.model_dump_json(
@@ -20,7 +27,7 @@ async def analyze_for_company(
     )
 
     question = f"""
-Проанализируй новость применительно к конкретной компании.
+Проанализируй влияние новости на компанию.
 
 ПРОФИЛЬ КОМПАНИИ:
 {company_data}
@@ -28,47 +35,89 @@ async def analyze_for_company(
 НОВОСТЬ:
 {news}
 
-Подготовь анализ по следующей структуре:
+Верни только корректный JSON-объект.
+Не добавляй Markdown, пояснения или текст вне JSON.
 
-1. Суть события.
-2. Почему новость важна или не важна для компании.
-3. Возможные риски.
-4. Возможные возможности.
-5. Что компании стоит проверить или предпринять.
-6. Какие выводы подтверждаются аналитикой Альфа-Банка.
+Структура JSON:
+{{
+    "relevance": "high",
+    "summary": "Краткое описание влияния новости",
+    "risks": [
+        "Риск 1",
+        "Риск 2"
+    ],
+    "opportunities": [
+        "Возможность 1"
+    ],
+    "recommendations": [
+        "Рекомендация 1"
+    ]
+}}
 
-Требования:
-- Учитывай отрасль и финансовые характеристики компании.
+Правила:
+- relevance: только high, medium, low или unknown.
+- summary: 1-3 предложения.
+- risks: список возможных рисков.
+- opportunities: список возможных возможностей.
+- recommendations: конкретные действия для компании.
+- Если нет обоснованных пунктов, используй пустой список.
 - Не выдумывай отсутствующие данные.
-- Не утверждай наличие проблем без подтверждения.
-- Разделяй факты и предположения.
-- Если данных недостаточно, укажи это.
+- Разделяй подтверждённые факты и предположения.
+- Не делай вывод об экспорте по региону регистрации.
+- Нулевая кредитная экспозиция не означает
+  отсутствие всех долгов компании.
 - Не считай отношение долга к выручке
   доказательством высокой долговой нагрузки.
-- Не делай вывод об экспорте по региону регистрации.
-- Нулевая кредитная экспозиция не означает,
-  что у компании отсутствуют все долги.
+- Для неподтверждённых выводов используй
+  формулировки "возможно", "если", "при условии".
+- Если используешь факты из аналитики,
+  указывай номер источника в тексте.
 """
 
-    result = await analyze_with_rag(
+    rag_result = await analyze_with_rag(
         question=question,
         search_query=news
     )
 
-    analysis = result["analysis"]
+    # Не пытаемся разбирать служебное сообщение
+    # об отсутствии контекста как JSON
+    if not rag_result["sources"]:
+        raise ValueError(
+            "Недостаточно аналитических материалов "
+            "для структурированного анализа."
+        )
+
+    # Проверяем структуру ответа модели
+    content = parse_structured_analysis(
+        rag_result["analysis"]
+    )
+
+    # Проверяем содержимое на известные ошибки
+    analysis_text = "\n".join([
+        content.summary,
+        *content.risks,
+        *content.opportunities,
+        *content.recommendations
+    ])
 
     warnings = validate_analysis(
-        analysis=analysis,
+        analysis=analysis_text,
         company=company
     )
 
-    return {
-        "company_id": company.company_id,
-        "news": news,
-        "analysis": analysis,
-        "sources": result["sources"],
-        "validation": {
-            "passed": len(warnings) == 0,
-            "warnings": warnings
-        }
-    }
+    response = CompanyAnalysisResponse(
+        company_id=company.company_id,
+        news=news,
+        relevance=content.relevance,
+        summary=content.summary,
+        risks=content.risks,
+        opportunities=content.opportunities,
+        recommendations=content.recommendations,
+        sources=rag_result["sources"],
+        validation=ValidationResult(
+            passed=len(warnings) == 0,
+            warnings=warnings
+        )
+    )
+
+    return response.model_dump()
