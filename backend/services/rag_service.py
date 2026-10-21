@@ -11,6 +11,7 @@ from services.search_service import search_chunks
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Загружаем настройки подключения к LLM
 load_dotenv(BASE_DIR / ".env")
 
 client = AsyncOpenAI(
@@ -22,15 +23,34 @@ client = AsyncOpenAI(
 MODEL = os.environ["LLM_MODEL"]
 
 
-async def analyze_with_rag(question: str) -> dict:
+async def analyze_with_rag(
+    question: str,
+    search_query: str | None = None
+) -> dict:
+    """
+    Анализирует вопрос с использованием RAG.
+
+    question — полный запрос для LLM.
+    search_query — отдельный запрос для поиска.
+    """
+
     json_path = (
         BASE_DIR / "data" / "processed" / "policy_rate.json"
     )
 
+    # Загружаем подготовленные фрагменты PDF
     chunks = load_chunks(str(json_path))
 
+    # Для поиска используем отдельный запрос,
+    # если он передан
+    query_for_search = (
+        search_query
+        if search_query is not None
+        else question
+    )
+
     relevant_chunks = search_chunks(
-        query=question,
+        query=query_for_search,
         chunks=chunks,
         top_k=3
     )
@@ -41,9 +61,13 @@ async def analyze_with_rag(question: str) -> dict:
             "sources": []
         }
 
+    # Формируем контекст для LLM
     context_parts = []
 
-    for index, chunk in enumerate(relevant_chunks, start=1):
+    for index, chunk in enumerate(
+        relevant_chunks,
+        start=1
+    ):
         context_parts.append(
             f"[Источник {index}]\n"
             f"Документ: {chunk['source']}\n"
@@ -53,6 +77,7 @@ async def analyze_with_rag(question: str) -> dict:
 
     context = "\n\n".join(context_parts)
 
+    # Отправляем запрос к LLM
     response = await client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -61,10 +86,11 @@ async def analyze_with_rag(question: str) -> dict:
                 "content": (
                     "Ты финансовый аналитик. "
                     "Используй предоставленные материалы "
-                    "для ответа на вопрос. "
+                    "Альфа-Банка для ответа на вопрос. "
                     "Не выдумывай факты или цифры. "
                     "Отделяй факты от предположений. "
                     "Ссылайся на номера источников. "
+                    "Если данных недостаточно, сообщи об этом. "
                     "Отвечай кратко и по существу."
                 )
             },
@@ -81,6 +107,7 @@ async def analyze_with_rag(question: str) -> dict:
 
     choice = response.choices[0]
 
+    # Отладочная информация
     print("\n========== LLM DEBUG ==========")
     print("Модель:", response.model)
     print("Причина завершения:", choice.finish_reason)
@@ -90,7 +117,10 @@ async def analyze_with_rag(question: str) -> dict:
     analysis = choice.message.content or ""
 
     if choice.finish_reason == "length":
-        print("ВНИМАНИЕ: ответ LLM обрезан по лимиту токенов.")
+        print(
+            "ВНИМАНИЕ: ответ LLM обрезан "
+            "по лимиту токенов."
+        )
 
     if not analysis.strip():
         raise RuntimeError(
@@ -107,6 +137,9 @@ async def analyze_with_rag(question: str) -> dict:
                 "page": chunk["page"],
                 "score": round(chunk["score"], 4)
             }
-            for index, chunk in enumerate(relevant_chunks, start=1)
+            for index, chunk in enumerate(
+                relevant_chunks,
+                start=1
+            )
         ]
     }
