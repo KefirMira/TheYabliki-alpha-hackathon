@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from services.chunk_service import load_chunks
+from settings import knowledge_base_dir
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,13 +16,14 @@ def load_knowledge_base() -> list[dict]:
     JSON-документов в папке data/processed.
     """
 
-    if not PROCESSED_DIR.exists():
+    directory = knowledge_base_dir()
+    if not directory.exists():
         return []
 
     all_chunks = []
 
     json_files = sorted(
-        PROCESSED_DIR.glob("*.json")
+        directory.glob("*.json")
     )
 
     for json_path in json_files:

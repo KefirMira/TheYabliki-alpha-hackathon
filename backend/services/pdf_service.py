@@ -4,15 +4,11 @@ from pathlib import Path
 import pymupdf
 import pytesseract
 from PIL import Image
-
-
-# Путь к установленной программе Tesseract
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
+from settings import tesseract_command, tesseract_languages
 
 
 def extract_pdf_text(file_path: str) -> list[dict]:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_command()
     pages = []
 
     with pymupdf.open(file_path) as document:
@@ -38,7 +34,7 @@ def extract_pdf_text(file_path: str) -> list[dict]:
 
                 text = pytesseract.image_to_string(
                     image,
-                    lang="rus+eng"
+                    lang=tesseract_languages()
                 ).strip()
 
             if not text:
