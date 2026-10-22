@@ -18,7 +18,7 @@ const Switch = ({ checked, onChange, locked = false, label }: SwitchProps) => (
     disabled={locked}
     onClick={() => onChange?.(!checked)}
     className={cn(
-      'relative block h-6 w-10 shrink-0 rounded-xl transition-colors',
+      'relative block h-6 w-10 shrink-0 rounded-full transition-colors',
       checked ? 'bg-ink' : 'bg-surface-off',
       locked ? 'cursor-not-allowed opacity-35' : 'cursor-pointer'
     )}

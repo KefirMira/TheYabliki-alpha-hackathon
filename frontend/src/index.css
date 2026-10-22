@@ -34,7 +34,7 @@
     --input: 225 9% 91%;
     --ring: 4 86% 54%;
 
-    --radius: 1.25rem; /* 20px — карточки */
+    --radius: 1.25rem; /* 20px — карточки (rounded-3xl) */
 
     --sidebar-background: 220 13% 95.5%;
     --sidebar-foreground: 225 10% 8%;
@@ -68,6 +68,20 @@
 }
 
 @layer utilities {
+  /*
+   * Полоса вкладок или сегментов: на узком экране листается вбок, но без
+   * видимого скроллбара. overflow-x: auto делает auto и overflow-y, и из-за
+   * -mb-px у вкладок Windows рисовал вертикальный скроллбар со стрелками.
+   */
+  .scroll-x-quiet {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .scroll-x-quiet::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Перенос строк без «висячих» коротких слов, как в макетах. */
   .text-pretty {
     text-wrap: pretty;

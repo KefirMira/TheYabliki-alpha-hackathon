@@ -94,7 +94,7 @@ const InsightsHistory = () => {
 
       <Segmented
         label="Итог инсайта"
-        className="self-start overflow-x-auto"
+        className="scroll-x-quiet self-start"
         value={filter}
         onChange={setFilter}
         options={FILTERS.map((value) => ({
@@ -107,7 +107,7 @@ const InsightsHistory = () => {
         }))}
       />
 
-      <div className="overflow-x-auto rounded-[20px] bg-white px-5 py-2">
+      <div className="overflow-x-auto rounded-3xl bg-white px-5 py-2">
         <div className="min-w-[860px]">
           <div
             className={cn(

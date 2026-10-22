@@ -17,7 +17,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-32px)] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-[20px] bg-white p-7 shadow-[0_24px_64px_rgba(18,19,22,0.2)] focus:outline-none',
+        'fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-32px)] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-3xl bg-white p-7 shadow-[0_24px_64px_rgba(18,19,22,0.2)] focus:outline-none',
         className
       )}
       {...props}
@@ -56,6 +56,17 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
+/** Кнопки окна — у правого края, одинаковый отступ во всех диалогах. */
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn('flex flex-wrap justify-end gap-3 pt-1', className)}
+    {...props}
+  />
+)
+
 export {
   Dialog,
   DialogTrigger,
@@ -63,4 +74,5 @@ export {
   DialogContent,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 }

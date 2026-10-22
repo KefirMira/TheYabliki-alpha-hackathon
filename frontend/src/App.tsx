@@ -1,5 +1,7 @@
 import { BrowserRouter } from 'react-router-dom'
 
+import { Toaster } from '@/components/ui/toaster'
+
 import { useScrollTopOnNavigate } from './hooks/useScrollTopOnNavigate'
 import { AppRoutes } from './routes'
 
@@ -16,6 +18,7 @@ const App = () => (
     }}
   >
     <AppContent />
+    <Toaster />
   </BrowserRouter>
 )
 

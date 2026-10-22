@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { IPersonalData } from '@/shared/mocks/pulse'
@@ -103,7 +104,7 @@ const PersonalDataDialog = ({
             </p>
           )}
 
-          <div className="flex gap-2">
+          <DialogFooter>
             <Button type="submit" className="h-auto px-[18px] py-3">
               Сохранить
             </Button>
@@ -115,7 +116,7 @@ const PersonalDataDialog = ({
             >
               Отменить
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -97,7 +97,7 @@ const PulseSources = () => {
         <Segmented
           size="sm"
           label="Тип источника"
-          className="overflow-x-auto"
+          className="scroll-x-quiet"
           value={type}
           onChange={setType}
           options={TABS.map((tab) => ({

@@ -1,7 +1,10 @@
 import alfaLogo from '@/assets/alfa-logo.png'
 import { cn } from '@/lib/utils'
 
-/** Знак Альфа-Банка: белая «А» с чертой на красном квадрате. */
+/**
+ * Знак Альфа-Банка: белая «А» с чертой на красном квадрате. Скругление —
+ * своё, как у знака, общая шкала скруглений его не касается.
+ */
 const AlfaLogo = ({ className }: { className?: string }) => (
   <img
     src={alfaLogo}

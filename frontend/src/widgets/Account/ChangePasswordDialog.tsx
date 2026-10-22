@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -177,7 +178,7 @@ const ChangePasswordDialog = ({
             </p>
           )}
 
-          <div className="flex gap-2 pt-1">
+          <DialogFooter>
             <Button type="submit" className="h-auto px-[18px] py-3">
               Сохранить
             </Button>
@@ -189,7 +190,7 @@ const ChangePasswordDialog = ({
             >
               Отменить
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

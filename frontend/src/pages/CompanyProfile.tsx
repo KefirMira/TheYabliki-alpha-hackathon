@@ -44,8 +44,8 @@ const CompanyProfile = () => {
     if (loading || currentCompanyId) {
       return (
         <div className="flex flex-col gap-4" aria-busy="true">
-          <div className="h-[120px] animate-pulse rounded-[20px] bg-white" />
-          <div className="h-[220px] animate-pulse rounded-[20px] bg-white" />
+          <div className="h-[120px] animate-pulse rounded-3xl bg-white" />
+          <div className="h-[220px] animate-pulse rounded-3xl bg-white" />
         </div>
       )
     }

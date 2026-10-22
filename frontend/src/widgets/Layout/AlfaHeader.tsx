@@ -7,7 +7,7 @@ import {
   Search,
   User,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import {
   Popover,
@@ -17,15 +17,19 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { DEMO_COMPANY_IDS } from '@/shared/constants/companies'
+import BackLink from '@/shared/ui/BackLink'
+import DemoStub from '@/shared/ui/DemoStub'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
-import { logout } from '@/store/reducers/AuthSlice'
 import { setCurrentCompany } from '@/store/reducers/CompanySlice'
 import { selectCompanyTitle } from '@/store/selectors/pulse'
+import LogoutDialog from '@/widgets/Account/LogoutDialog'
 
 import NotificationsBell from './NotificationsBell'
 
-const iconButton =
-  'flex h-10 w-10 items-center justify-center rounded-xl text-ink-2 transition-colors hover:bg-surface-chip'
+const iconBase =
+  'flex h-10 w-10 items-center justify-center rounded-xl text-ink-2'
+
+const iconButton = cn(iconBase, 'transition-colors hover:bg-surface-chip')
 
 const Divider = () => <span className="mx-1.5 h-6 w-px bg-line-strong" />
 
@@ -86,29 +90,34 @@ const CompanyMenu = () => {
   )
 }
 
-/** Шапка интернет-банка: поиск, календарь, чат, уведомления, организация. */
+/**
+ * Шапка интернет-банка: поиск, календарь, чат, уведомления, организация.
+ * Внутри Пульса слева — возврат на главную банка.
+ */
 const AlfaHeader = () => {
-  const dispatch = useAppDispatch()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    dispatch(logout())
-    navigate('/login', { replace: true })
-  }
+  const inPulse = useLocation().pathname.startsWith('/pulse')
 
   return (
     <header className="flex h-[72px] items-center justify-end gap-1.5 px-4 lg:pl-10 lg:pr-8">
-      <span className="flex cursor-default items-center gap-2 px-3 py-2 text-[15px] text-ink-3">
+      {inPulse && (
+        <div className="-ml-2 mr-auto flex">
+          <BackLink to="/">На главную</BackLink>
+        </div>
+      )}
+      <DemoStub
+        label="Поиск"
+        className="flex items-center gap-2 px-3 py-2 text-[15px] text-ink-3"
+      >
         <Search className="h-5 w-5" strokeWidth={1.8} />
         Поиск
-      </span>
+      </DemoStub>
       <Divider />
-      <span className={iconButton} aria-label="Календарь платежей">
+      <DemoStub label="Календарь платежей" className={iconBase}>
         <CalendarDays className="h-5 w-5" strokeWidth={1.8} />
-      </span>
-      <span className={iconButton} aria-label="Чат с банком">
+      </DemoStub>
+      <DemoStub label="Чат с банком" className={iconBase}>
         <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
-      </span>
+      </DemoStub>
       <NotificationsBell />
       <Divider />
       <CompanyMenu />
@@ -119,14 +128,11 @@ const AlfaHeader = () => {
       >
         <User className="h-5 w-5" strokeWidth={1.8} />
       </Link>
-      <button
-        type="button"
-        onClick={handleLogout}
-        className={iconButton}
-        aria-label="Выйти"
-      >
-        <LogOut className="h-5 w-5 rotate-180" strokeWidth={1.8} />
-      </button>
+      <LogoutDialog>
+        <button type="button" className={iconButton} aria-label="Выйти">
+          <LogOut className="h-5 w-5 rotate-180" strokeWidth={1.8} />
+        </button>
+      </LogoutDialog>
     </header>
   )
 }

@@ -14,6 +14,7 @@ import {
   PAYMENT_STATUSES,
 } from '@/shared/mocks/pulse'
 import Card from '@/shared/ui/Card'
+import DemoStub from '@/shared/ui/DemoStub'
 
 const QUICK_ACTIONS = [
   { label: 'Создать платёж', icon: FileText },
@@ -23,19 +24,27 @@ const QUICK_ACTIONS = [
   { label: 'Выписка', icon: ScrollText },
 ]
 
-/** Быстрые действия банка — в прототипе только витрина. */
+/**
+ * Витрина интернет-банка вокруг Пульса. Действия и статусы — DemoStub
+ * (приглушены, по клику подсказка). Счета и операции — данные для
+ * контекста: приглушены слабее и на клик не реагируют.
+ */
+const INFO_DIM = 'opacity-75'
+
+/** Быстрые действия банка — в прототипе не работают. */
 export const QuickActions = () => (
   <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
     {QUICK_ACTIONS.map(({ label, icon: Icon }) => (
-      <span
+      <DemoStub
         key={label}
-        className="flex cursor-default items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-ink-2"
+        label={label}
+        className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-ink-2"
       >
         <Icon className="h-5 w-5 shrink-0" strokeWidth={1.8} />
         <span className="truncate text-[15px] font-medium text-ink">
           {label}
         </span>
-      </span>
+      </DemoStub>
     ))}
   </div>
 )
@@ -53,7 +62,10 @@ const Counter = ({ count, accent }: { count: number; accent?: boolean }) => (
 
 /** Статусы платежей: Подписать · Доработать · Черновики… */
 export const PaymentStatuses = () => (
-  <div className="flex flex-wrap items-center gap-x-7 gap-y-2 rounded-2xl bg-white px-5 py-3.5 text-[15px]">
+  <DemoStub
+    label="Статусы платежей"
+    className="flex flex-wrap items-center gap-x-7 gap-y-2 rounded-2xl bg-white px-5 py-3.5 text-[15px]"
+  >
     {PAYMENT_STATUSES.map((status) => (
       <span
         key={status.label}
@@ -71,12 +83,12 @@ export const PaymentStatuses = () => (
       В работе у банка
       <Counter count={BANK_IN_WORK} />
     </span>
-  </div>
+  </DemoStub>
 )
 
 /** Расчётный счёт и кредитная линия. */
 export const AccountCards = () => (
-  <div className="grid gap-4 md:grid-cols-2">
+  <div className={cn('grid gap-4 md:grid-cols-2', INFO_DIM)}>
     {HOME_ACCOUNTS.map((account) => (
       <Card key={account.title}>
         <div className="flex flex-col gap-1.5">
@@ -94,7 +106,7 @@ export const AccountCards = () => (
 
 /** История операций за день. */
 export const OperationsHistory = () => (
-  <Card>
+  <Card className={INFO_DIM}>
     <div className="flex items-center justify-between">
       <span className="text-xl font-semibold">История операций</span>
       <span className="text-sm text-ink-3">15.09.2026</span>

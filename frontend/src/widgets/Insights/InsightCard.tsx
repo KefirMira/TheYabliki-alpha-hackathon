@@ -40,7 +40,7 @@ const InsightCard = ({
   return (
     <Link
       to={`/pulse/insights/${insight.id}`}
-      className="flex h-full min-w-0 flex-col gap-4 rounded-[20px] bg-white p-5 transition-shadow hover:shadow-[0_8px_24px_rgba(18,19,22,0.08)]"
+      className="flex h-full min-w-0 flex-col gap-4 rounded-3xl bg-white p-5 transition-shadow hover:shadow-[0_8px_24px_rgba(18,19,22,0.08)]"
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
         <span className="shrink-0">

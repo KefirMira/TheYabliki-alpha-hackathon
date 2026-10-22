@@ -16,10 +16,7 @@ export const FeedSkeleton = ({
 }) => (
   <div className={cn('grid gap-4 md:grid-cols-2', className)} aria-busy="true">
     {Array.from({ length: count }, (_, index) => (
-      <div
-        key={index}
-        className="flex flex-col gap-4 rounded-[20px] bg-white p-5"
-      >
+      <div key={index} className="flex flex-col gap-4 rounded-3xl bg-white p-5">
         <Skeleton className="h-[22px] w-40 bg-surface-page" />
         <Skeleton className="h-5 w-full bg-surface-page" />
         <Skeleton className="h-5 w-2/3 bg-surface-page" />

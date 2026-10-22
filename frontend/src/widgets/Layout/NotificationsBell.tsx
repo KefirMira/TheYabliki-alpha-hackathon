@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { BELL_PAYMENT } from '@/shared/mocks/pulse'
+import DemoStub from '@/shared/ui/DemoStub'
 import PulseLogo from '@/shared/ui/PulseLogo'
 import { useAppSelector } from '@/store/hooks/redux'
 import { selectPulseInsights } from '@/store/selectors/pulse'
@@ -47,7 +48,9 @@ const NotificationsBell = () => {
       <PopoverContent className="flex w-[400px] flex-col">
         <div className="flex items-center justify-between px-3 pb-2 pt-3">
           <span className="text-[17px] font-semibold">Уведомления</span>
-          <span className="text-[13px] text-ink-3">Прочитать все</span>
+          <DemoStub label="Прочитать все" className="text-[13px] text-ink-3">
+            Прочитать все
+          </DemoStub>
         </div>
 
         {insights.map((insight, index) => (
@@ -76,7 +79,10 @@ const NotificationsBell = () => {
           </PopoverClose>
         ))}
 
-        <div className="flex gap-3 rounded-[14px] p-3">
+        <DemoStub
+          label="Платёж на подпись"
+          className="flex gap-3 rounded-[14px] p-3"
+        >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-page text-ink-2">
             <FileSignature className="h-4 w-4" />
           </span>
@@ -91,7 +97,7 @@ const NotificationsBell = () => {
             </span>
             <span className="text-[13px] text-ink-3">{BELL_PAYMENT.time}</span>
           </span>
-        </div>
+        </DemoStub>
 
         <PopoverClose asChild>
           <Link

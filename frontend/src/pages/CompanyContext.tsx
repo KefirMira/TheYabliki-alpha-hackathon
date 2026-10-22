@@ -1,6 +1,5 @@
-import { useFlash } from '@/hooks/useFlash'
 import { FEATURES } from '@/shared/constants/features'
-import FlashMessage from '@/shared/ui/FlashMessage'
+import { toast } from '@/shared/ui/appToast'
 import ContextApiCard from '@/widgets/Company/ContextApiCard'
 import ContextFiles from '@/widgets/Company/ContextFiles'
 import ContextNotes from '@/widgets/Company/ContextNotes'
@@ -12,8 +11,6 @@ import PageHeading from '@/widgets/Layout/PageHeading'
  * интерфейс обещал бы учесть то, что на сервер не уходит.
  */
 const CompanyContext = () => {
-  const [message, flash] = useFlash()
-
   return (
     <>
       <PageHeading
@@ -27,11 +24,10 @@ const CompanyContext = () => {
       {FEATURES.companyContext && (
         <>
           <ContextFiles />
-          <ContextNotes onSaved={flash} />
+          <ContextNotes onSaved={toast.success} />
         </>
       )}
       <ContextApiCard />
-      <FlashMessage message={message} />
     </>
   )
 }

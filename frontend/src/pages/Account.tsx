@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { Lock, LogOut, Pencil, Shield, User } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
-import { useFlash } from '@/hooks/useFlash'
 import { FEATURES } from '@/shared/constants/features'
 import {
   DEMO_USER,
@@ -12,13 +10,13 @@ import {
   ROLE_SPHERES,
 } from '@/shared/mocks/pulse'
 import Card from '@/shared/ui/Card'
-import FlashMessage from '@/shared/ui/FlashMessage'
+import { toast } from '@/shared/ui/appToast'
 import Tag from '@/shared/ui/Tag'
 import { plural } from '@/shared/utils/plural'
-import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
-import { logout } from '@/store/reducers/AuthSlice'
+import { useAppSelector } from '@/store/hooks/redux'
 import { selectCompanyTitle } from '@/store/selectors/pulse'
 import ChangePasswordDialog from '@/widgets/Account/ChangePasswordDialog'
+import LogoutDialog from '@/widgets/Account/LogoutDialog'
 import PersonalDataDialog from '@/widgets/Account/PersonalDataDialog'
 import PageHeading from '@/widgets/Layout/PageHeading'
 
@@ -50,14 +48,11 @@ const Field = ({ label, value }: { label: string; value: string }) => (
  * пароля скрыты флагом, пока нет API пользователя.
  */
 const Account = () => {
-  const dispatch = useAppDispatch()
-  const navigate = useNavigate()
   const username = useAppSelector((state) => state.auth.username)
   const companyTitle = useAppSelector(selectCompanyTitle)
   const [person, setPerson] = useState<IPersonalData>(DEMO_USER)
   const [personalOpen, setPersonalOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
-  const [message, flash] = useFlash()
 
   const fullName = FEATURES.accountSettings
     ? [person.lastName, person.firstName, person.middleName]
@@ -67,11 +62,6 @@ const Account = () => {
   const initials = FEATURES.accountSettings
     ? `${person.lastName[0] ?? ''}${person.firstName[0] ?? ''}`
     : fullName.slice(0, 2)
-
-  const handleLogout = () => {
-    dispatch(logout())
-    navigate('/login', { replace: true })
-  }
 
   return (
     <>
@@ -85,7 +75,7 @@ const Account = () => {
       />
 
       <Card className="flex-row flex-wrap items-center gap-5 p-7">
-        <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[20px] bg-surface-page text-2xl font-bold uppercase">
+        <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-3xl bg-surface-page text-2xl font-bold uppercase">
           {initials}
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -95,14 +85,15 @@ const Account = () => {
             {companyTitle}
           </span>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="h-auto rounded-xl px-4 py-2.5 font-medium"
-        >
-          <LogOut className="rotate-180" />
-          Выйти
-        </Button>
+        <LogoutDialog>
+          <Button
+            variant="outline"
+            className="h-auto rounded-xl px-4 py-2.5 font-medium"
+          >
+            <LogOut className="rotate-180" />
+            Выйти
+          </Button>
+        </LogoutDialog>
       </Card>
 
       <Card className="p-7">
@@ -190,15 +181,14 @@ const Account = () => {
         onOpenChange={setPersonalOpen}
         onSave={(data) => {
           setPerson(data)
-          flash('Личные данные сохранены')
+          toast.success('Личные данные сохранены')
         }}
       />
       <ChangePasswordDialog
         open={passwordOpen}
         onOpenChange={setPasswordOpen}
-        onChanged={() => flash('Пароль изменён')}
+        onChanged={() => toast.success('Пароль изменён')}
       />
-      <FlashMessage message={message} />
     </>
   )
 }

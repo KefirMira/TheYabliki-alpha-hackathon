@@ -11,6 +11,13 @@ import { filterFeed, filtersFromParams } from '@/widgets/Insights/feedFilter'
 
 const WIDGET_COUNT = 3
 
+// Колонок столько, сколько инсайтов: карточки всегда во всю ширину виджета.
+const COLUMNS: Record<number, string> = {
+  1: 'md:grid-cols-1',
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+}
+
 /**
  * Точка входа в Пульс на главной банка: самое важное событие одной строкой
  * и три важных инсайта из API. Стоит в первом экране, заметнее промо.
@@ -37,7 +44,7 @@ const PulseWidget = () => {
   })()
 
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-5 rounded-[20px] bg-white px-6 py-5">
+    <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-5 rounded-3xl bg-white px-6 py-5">
       <Link to="/pulse/summary" className="flex min-w-0 items-center gap-3.5">
         <PulseLogo />
         <span className="flex min-w-0 flex-col gap-0.5">
@@ -56,7 +63,12 @@ const PulseWidget = () => {
       <Button onClick={() => navigate('/pulse/summary')}>Открыть Пульс</Button>
 
       {insights.length > 0 && (
-        <div className="col-span-full -mx-5 grid border-t border-line pt-4 md:grid-cols-3">
+        <div
+          className={cn(
+            'col-span-full -mx-5 grid border-t border-line pt-4',
+            COLUMNS[insights.length]
+          )}
+        >
           {insights.map((insight, index) => (
             <Link
               key={insight.id}

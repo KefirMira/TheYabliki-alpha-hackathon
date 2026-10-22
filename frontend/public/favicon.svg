@@ -1,0 +1,13 @@
+<!-- Знак «Пульса бизнеса» — копия PulseLogo (variant="filled"). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+  <rect width="140" height="140" rx="32" fill="#EF3124" />
+  <polyline
+    points="14,74 36,74 44,62 51,74 57,74 70,24 83,92 90,74 126,74"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="11"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+  <rect x="54" y="104" width="32" height="11" rx="2" fill="#FFFFFF" />
+</svg>

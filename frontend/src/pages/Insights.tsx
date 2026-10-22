@@ -131,7 +131,7 @@ const Insights = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Segmented
           label="Тип инсайтов"
-          className="overflow-x-auto"
+          className="scroll-x-quiet"
           value={filters.type}
           onChange={(type) => setParam('type', type === 'all' ? null : type)}
           options={tabs.map((type) => ({

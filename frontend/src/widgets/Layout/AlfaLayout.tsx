@@ -7,7 +7,10 @@ import PageLoader from '@/shared/ui/PageLoader'
 import AlfaHeader from './AlfaHeader'
 import AlfaSidebar from './AlfaSidebar'
 
-/** Оболочка интернет-банка Альфа-Бизнес: меню слева, шапка, контент. */
+/**
+ * Оболочка интернет-банка Альфа-Бизнес: меню слева, шапка, контент. Всё,
+ * кроме Пульса, — витрина: приглушено и по клику объясняет, что не работает.
+ */
 const AlfaLayout = () => {
   usePulseData()
 

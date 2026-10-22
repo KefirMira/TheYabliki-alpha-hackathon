@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { FEATURES } from '@/shared/constants/features'
 import Card from '@/shared/ui/Card'
+import Segmented, { type SegmentedOption } from '@/shared/ui/Segmented'
 import type { IInsightDetail, IInsightQuestion } from '@/store/models/IPulse'
 
 type PanelTab = 'log' | 'ask'
@@ -18,42 +19,10 @@ type PanelTab = 'log' | 'ask'
 const STUB_ANSWER =
   'Свободные вопросы Пульс начнёт разбирать после подключения ассистента. Пока выберите один из вопросов выше.'
 
-const PanelTabs = ({
-  value,
-  onChange,
-}: {
-  value: PanelTab
-  onChange: (tab: PanelTab) => void
-}) => (
-  <div
-    role="tablist"
-    className="grid grid-cols-2 gap-0.5 rounded-xl bg-surface-chip p-[3px]"
-  >
-    {(
-      [
-        ['log', 'Ход анализа', AlignLeft],
-        ['ask', 'Спросить', MessageSquare],
-      ] as const
-    ).map(([tab, label, Icon]) => (
-      <button
-        key={tab}
-        type="button"
-        role="tab"
-        aria-selected={value === tab}
-        onClick={() => onChange(tab)}
-        className={cn(
-          'flex items-center justify-center gap-1.5 rounded-[9px] px-2.5 py-2 text-[15px] transition-colors',
-          value === tab
-            ? 'bg-white font-semibold shadow-[0_1px_2px_rgba(18,19,22,0.1)]'
-            : 'font-medium'
-        )}
-      >
-        <Icon className="h-4 w-4" />
-        {label}
-      </button>
-    ))}
-  </div>
-)
+const PANEL_TABS: SegmentedOption<PanelTab>[] = [
+  { value: 'log', label: 'Ход анализа', icon: AlignLeft },
+  { value: 'ask', label: 'Спросить', icon: MessageSquare },
+]
 
 const AnalysisLog = ({ detail }: { detail: IInsightDetail }) => (
   <div className="flex flex-col gap-3.5">
@@ -185,7 +154,13 @@ const InsightSidePanel = ({ detail }: { detail: IInsightDetail }) => {
 
   return (
     <Card className="2xl:sticky 2xl:top-4">
-      <PanelTabs value={tab} onChange={setTab} />
+      <Segmented
+        fill
+        label="Разделы панели"
+        options={PANEL_TABS}
+        value={tab}
+        onChange={setTab}
+      />
       {tab === 'log' ? (
         <AnalysisLog detail={detail} />
       ) : (

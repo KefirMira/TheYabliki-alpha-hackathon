@@ -25,7 +25,7 @@ const PulseLayout = () => {
         </div>
 
         <nav
-          className="flex gap-7 overflow-x-auto border-b border-line-strong text-[15px]"
+          className="scroll-x-quiet flex gap-7 border-b border-line-strong text-[15px]"
           aria-label="Разделы Пульса"
         >
           {PULSE_TABS.map((tab) => {

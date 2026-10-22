@@ -116,11 +116,12 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      // Скругления — как в макетах v6. Шкала Tailwind по умолчанию (sm 2,
+      // md 6, lg 8, xl 12, 2xl 16) совпадает с макетом, переопределён только
+      // 3xl: 20px у карточек, диалогов и поповеров. Значения макета вне шкалы
+      // (14, 10, 9) — произвольными классами на месте.
       borderRadius: {
-        xl: 'calc(var(--radius) + 8px)',
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 4px)',
-        sm: 'calc(var(--radius) - 6px)',
+        '3xl': 'var(--radius)',
       },
       keyframes: {
         'accordion-down': {

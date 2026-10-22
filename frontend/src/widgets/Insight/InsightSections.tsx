@@ -78,7 +78,7 @@ export const WhatItMeans = ({ detail }: { detail: IInsightDetail }) => (
 export const BankPosition = ({ bank }: { bank: IBankPosition | null }) => {
   if (!bank) {
     return (
-      <div className="col-span-full flex min-w-0 gap-[18px] rounded-[20px] bg-surface-cell py-5 pl-5 pr-6 shadow-[inset_0_0_0_1px_#E6E7EA]">
+      <div className="col-span-full flex min-w-0 gap-[18px] rounded-3xl bg-surface-cell py-5 pl-5 pr-6 shadow-[inset_0_0_0_1px_#E6E7EA]">
         <span className="w-[3px] shrink-0 rounded-sm bg-line-dashed" />
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
@@ -97,7 +97,7 @@ export const BankPosition = ({ bank }: { bank: IBankPosition | null }) => {
   }
 
   return (
-    <div className="col-span-full flex min-w-0 gap-[18px] rounded-[20px] bg-white py-5 pl-5 pr-6">
+    <div className="col-span-full flex min-w-0 gap-[18px] rounded-3xl bg-white py-5 pl-5 pr-6">
       <span className="w-[3px] shrink-0 rounded-sm bg-brand" />
       <div className="flex min-w-0 flex-1 flex-col gap-3.5">
         <div className="flex items-center gap-2.5">
@@ -107,7 +107,7 @@ export const BankPosition = ({ bank }: { bank: IBankPosition | null }) => {
           <LayerTag layer="bank" />
         </div>
         <div className="flex items-center gap-2.5">
-          <AlfaLogo className="h-7 w-7 rounded-lg" />
+          <AlfaLogo className="h-7 w-7 rounded-full" />
           <span className="flex flex-col gap-px">
             <span className="text-sm font-semibold">Позиция Альфа-Банка</span>
             <span className="text-[13px] text-ink-3">

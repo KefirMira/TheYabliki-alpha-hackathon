@@ -10,7 +10,7 @@ import { COMPANY_MENU } from './config'
 const CompanyLayout = () => (
   <div className="grid items-start gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
     <nav
-      className="flex flex-col gap-0.5 rounded-[20px] bg-white p-2"
+      className="flex flex-col gap-0.5 rounded-3xl bg-white p-2"
       aria-label="Разделы «Моя компания»"
     >
       {COMPANY_MENU.map(({ key, label, icon: Icon, path }) => (

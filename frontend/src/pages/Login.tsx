@@ -46,7 +46,7 @@ const Login = () => {
     <div className="flex min-h-screen items-center justify-center bg-surface-page p-4">
       <form
         onSubmit={handleSubmit}
-        className="flex w-full max-w-[440px] flex-col gap-6 rounded-[20px] bg-white p-10"
+        className="flex w-full max-w-[440px] flex-col gap-6 rounded-3xl bg-white p-10"
       >
         <span className="flex items-center gap-2.5">
           <AlfaLogo className="h-9 w-9 rounded-[10px]" />

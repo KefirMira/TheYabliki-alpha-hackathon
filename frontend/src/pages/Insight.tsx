@@ -32,13 +32,13 @@ import { relevanceText } from '@/widgets/Insights/insightView'
 const InsightSkeleton = () => (
   <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_400px]">
     <div className="flex flex-col gap-4">
-      <div className="h-[220px] animate-pulse rounded-[20px] bg-white" />
+      <div className="h-[220px] animate-pulse rounded-3xl bg-white" />
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="h-[180px] animate-pulse rounded-[20px] bg-white" />
-        <div className="h-[180px] animate-pulse rounded-[20px] bg-white" />
+        <div className="h-[180px] animate-pulse rounded-3xl bg-white" />
+        <div className="h-[180px] animate-pulse rounded-3xl bg-white" />
       </div>
     </div>
-    <div className="h-[320px] animate-pulse rounded-[20px] bg-white" />
+    <div className="h-[320px] animate-pulse rounded-3xl bg-white" />
   </div>
 )
 
