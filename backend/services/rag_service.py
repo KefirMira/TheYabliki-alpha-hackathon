@@ -36,7 +36,9 @@ DOCUMENT_DATES = {
 
 async def analyze_with_rag(
     question: str,
-    search_query: str | None = None
+    search_query: str | None = None,
+    *,
+    include_evidence: bool = False,
 ) -> dict:
     """
     Анализирует запрос с использованием
@@ -193,7 +195,15 @@ async def analyze_with_rag(
             "score": round(chunk["score"], 4)
         })
 
-    return {
+    result = {
         "analysis": analysis,
         "sources": sources
     }
+    if include_evidence:
+        # Capture the exact fragments used in this call, never re-run retrieval.
+        result["evidence"] = [
+            {**source, "text": chunk["text"]}
+            for source, chunk in zip(sources, relevant_chunks)
+        ]
+        result["model_name"] = response.model
+    return result

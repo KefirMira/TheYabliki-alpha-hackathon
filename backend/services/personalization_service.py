@@ -16,6 +16,14 @@ async def analyze_for_company(
     news: str,
     company: CompanyProfile
 ) -> dict:
+    return await _analyze_for_company(news, company, with_evidence=False)
+
+
+async def analyze_for_company_with_evidence(news: str, company: CompanyProfile):
+    return await _analyze_for_company(news, company, with_evidence=True)
+
+
+async def _analyze_for_company(news: str, company: CompanyProfile, *, with_evidence: bool):
     """
     Возвращает структурированный анализ новости
     для конкретной компании.
@@ -74,9 +82,11 @@ async def analyze_for_company(
   указывай номер источника в тексте.
 """
 
+    rag_options = {"include_evidence": True} if with_evidence else {}
     rag_result = await analyze_with_rag(
         question=question,
-        search_query=news
+        search_query=news,
+        **rag_options,
     )
 
     # Не пытаемся разбирать служебное сообщение
@@ -120,4 +130,12 @@ async def analyze_for_company(
         )
     )
 
+    if with_evidence:
+        from schemas.persisted_analysis import PersistableAnalysis
+
+        return PersistableAnalysis(
+            analysis=response,
+            evidence=rag_result["evidence"],
+            model_name=rag_result.get("model_name"),
+        )
     return response.model_dump()

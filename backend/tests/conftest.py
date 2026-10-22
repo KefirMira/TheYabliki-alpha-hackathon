@@ -24,3 +24,27 @@ def test_database_url():
     if not url:
         pytest.skip("Run backend/tests/run-profile-tests.ps1 for synthetic PostgreSQL tests")
     return url
+
+
+@pytest.fixture
+def bundle_factory():
+    from schemas.persisted_analysis import PersistableAnalysis
+
+    def make(news="Synthetic persistence news", company_id="SYNTH-COMPANY-A"):
+        fragments = [
+            {"id": 1, "document": "synthetic-month.pdf", "page": 2, "chunk_id": 3,
+             "date": "2026-08", "score": 0.42, "text": "Exact synthetic retrieval fragment.\nSecond line."},
+            {"id": 2, "document": "synthetic-day.pdf", "page": 4, "chunk_id": 5,
+             "date": "2026-08-12", "score": 0.31, "text": "Another exact synthetic fragment."},
+        ]
+        return PersistableAnalysis.model_validate({
+            "analysis": {
+                "company_id": company_id, "news": news, "relevance": "high", "summary": "Synthetic summary",
+                "risks": ["Synthetic risk"], "opportunities": [], "recommendations": ["Synthetic action"],
+                "sources": [{key: item[key] for key in ("id", "document", "page", "score")} for item in fragments],
+                "validation": {"passed": False, "warnings": ["Synthetic warning"]},
+            },
+            "evidence": fragments, "model_name": "synthetic-model",
+        })
+
+    return make
