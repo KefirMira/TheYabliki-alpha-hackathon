@@ -1,0 +1,30 @@
+﻿# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local datasets and generated files
+backend/data/
+
+# IDE
+.vscode/
+
+# Frontend
+node_modules/
+dist/
+
+# Private hackathon inputs and local database artifacts
+database/private/
+database/seed.sql
+*.csv
+*.tsv
+*.dump
+*.backup
+pgdata/
