@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from schemas.analysis import CompanyAnalysisResponse
@@ -15,14 +16,23 @@ from api.insights import router as insights_router
 from api.readiness import router as readiness_router
 from db.session import database_lifespan
 from services.analysis_gateway import analyze_for_company, analyze_with_rag
+from api.runtime import require_ai_enabled
+from settings import execution_mode
 
 
 # Настройки приложения
 BASE_DIR = Path(__file__).resolve().parent
 
 load_dotenv(BASE_DIR / ".env")
+execution_mode()  # Invalid modes must never silently enable paid analysis.
 
 app = FastAPI(title="Alfa Hack API", lifespan=database_lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
+)
 app.include_router(companies_router)
 app.include_router(company_analyses_router)
 app.include_router(insights_router)
@@ -61,6 +71,7 @@ async def health():
 
 @app.post(
     "/api/analyze",
+    dependencies=[Depends(require_ai_enabled)],
     response_model=AnalyzeResponse
 )
 async def analyze(request: AnalyzeRequest):
@@ -107,7 +118,7 @@ async def analyze(request: AnalyzeRequest):
 # RAG-анализ новости
 # -----------------------------
 
-@app.post("/api/analyze-rag")
+@app.post("/api/analyze-rag", dependencies=[Depends(require_ai_enabled)])
 async def analyze_rag(request: AnalyzeRequest):
     try:
         result = await analyze_with_rag(
@@ -130,6 +141,7 @@ async def analyze_rag(request: AnalyzeRequest):
 
 @app.post(
     "/api/analyze-company",
+    dependencies=[Depends(require_ai_enabled)],
     response_model=CompanyAnalysisResponse
 )
 async def analyze_company(

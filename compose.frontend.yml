@@ -1,0 +1,64 @@
+name: pulse-frontend-demo
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pulse_demo
+      POSTGRES_USER: pulse_demo
+      POSTGRES_PASSWORD: pulse_local_demo_only
+    volumes:
+      - demo_pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./database/migrations/002_pulse_features.sql:/docker-entrypoint-initdb.d/002_pulse_features.sql:ro
+      - ./database/migrations/003_integrity.sql:/docker-entrypoint-initdb.d/003_integrity.sql:ro
+      - ./docker/frontend-demo.sql:/docker-entrypoint-initdb.d/900_demo.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U pulse_demo -d pulse_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+    networks: [demo]
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pulse_demo:pulse_local_demo_only@postgres:5432/pulse_demo
+      AI_MODE: demo
+      LLM_API_KEY: ""
+      LLM_BASE_URL: ""
+      LLM_MODEL: ""
+      RAG_KNOWLEDGE_BASE_DIR: /rag
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - demo_rag:/rag:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=8)"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    networks: [demo]
+  smoke:
+    image: python:3.12-slim-bookworm
+    profiles: [checks]
+    environment:
+      SMOKE_MODE: demo
+      SMOKE_BASE_URL: http://backend:8000
+      SMOKE_CORS_ORIGIN: ${CORS_ORIGINS:-http://localhost:5173}
+    volumes:
+      - ./docker/smoke.py:/smoke.py:ro
+    command: [python, /smoke.py]
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [demo]
+volumes:
+  demo_pgdata:
+  demo_rag:
+networks:
+  demo:

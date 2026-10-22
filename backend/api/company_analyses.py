@@ -5,6 +5,7 @@ from db.session import get_session_factory, unavailable
 from schemas.company_analysis_api import CompanyAnalysisRequest, CreatedCompanyAnalysis
 from services.company_analysis_service import AnalysisFailure, CompanyAnalysisService, RunStatusUncertain, default_analyzer
 from services.company_profile_service import CompanyNotFound
+from api.runtime import require_ai_enabled
 
 
 router = APIRouter(prefix="/api/companies", tags=["company analyses"])
@@ -18,7 +19,8 @@ def get_analysis_service(sessions=Depends(get_session_factory), analyzer=Depends
     return CompanyAnalysisService(sessions, analyzer)
 
 
-@router.post("/{source_id}/analyses", response_model=CreatedCompanyAnalysis, status_code=201)
+@router.post("/{source_id}/analyses", response_model=CreatedCompanyAnalysis, status_code=201,
+             dependencies=[Depends(require_ai_enabled)])
 async def create_company_analysis(
     request: CompanyAnalysisRequest,
     source_id: str = Path(min_length=1, max_length=200),

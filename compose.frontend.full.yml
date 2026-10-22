@@ -1,0 +1,18 @@
+# Explicit opt-in. Loading credentials does not itself call the provider.
+services:
+  backend:
+    environment:
+      AI_MODE: full
+      LLM_API_KEY: ${LLM_API_KEY:?Set LLM_API_KEY locally}
+      LLM_BASE_URL: ${LLM_BASE_URL:?Set LLM_BASE_URL locally}
+      LLM_MODEL: ${LLM_MODEL:?Set LLM_MODEL locally}
+    volumes:
+      - type: bind
+        source: ${RAG_CORPUS_DIR:?Set absolute path to permitted prepared JSON corpus}
+        target: /rag
+        read_only: true
+        bind:
+          create_host_path: false
+  smoke:
+    environment:
+      SMOKE_MODE: full

@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from services.knowledge_base_service import load_knowledge_base
+from settings import execution_mode
 
 router = APIRouter()
 TABLES = (
@@ -54,7 +55,7 @@ async def readiness(request: Request):
         except Exception:
             # No paths, DSNs, SQL or provider credentials in public diagnostics.
             pass
-    ready = all(checks.values())
+    ready = checks["database"] if execution_mode() == "demo" else all(checks.values())
     return JSONResponse(
         status_code=200 if ready else 503,
         content={"status": "ready" if ready else "not_ready", "checks": checks},

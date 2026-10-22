@@ -18,3 +18,10 @@ def tesseract_command() -> str:
 
 def tesseract_languages() -> str:
     return os.environ.get("TESSERACT_LANGUAGES") or "rus+eng"
+
+
+def execution_mode() -> str:
+    mode = os.environ.get("AI_MODE", "full")
+    if mode not in {"demo", "full"}:
+        raise ValueError("AI_MODE must be demo or full")
+    return mode
