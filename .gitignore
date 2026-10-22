@@ -20,3 +20,12 @@ backend/data/
 # Frontend
 node_modules/
 dist/
+
+# Private hackathon inputs and local database artifacts
+database/private/
+database/seed.sql
+*.csv
+*.tsv
+*.dump
+*.backup
+pgdata/
