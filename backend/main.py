@@ -11,6 +11,7 @@ from schemas.company import CompanyProfile
 
 from api.companies import router as companies_router
 from api.company_analyses import router as company_analyses_router
+from api.insights import router as insights_router
 from db.session import database_lifespan
 from services.analysis_gateway import analyze_for_company, analyze_with_rag
 
@@ -23,6 +24,7 @@ load_dotenv(BASE_DIR / ".env")
 app = FastAPI(title="Alfa Hack API", lifespan=database_lifespan)
 app.include_router(companies_router)
 app.include_router(company_analyses_router)
+app.include_router(insights_router)
 
 
 # -----------------------------
