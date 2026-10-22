@@ -4,14 +4,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
 from schemas.analysis import CompanyAnalysisResponse
 from schemas.company import CompanyProfile
 
-from services.personalization_service import analyze_for_company
-from services.rag_service import analyze_with_rag
+from api.companies import router as companies_router
+from db.session import database_lifespan
+from services.analysis_gateway import analyze_for_company, analyze_with_rag
 
 
 # Настройки приложения
@@ -19,17 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent
 
 load_dotenv(BASE_DIR / ".env")
 
-app = FastAPI(title="Alfa Hack API")
-
-
-# Клиент LLM для обычного анализа
-client = AsyncOpenAI(
-    api_key=os.environ["LLM_API_KEY"],
-    base_url=os.environ["LLM_BASE_URL"],
-    timeout=60.0
-)
-
-MODEL = os.environ["LLM_MODEL"]
+app = FastAPI(title="Alfa Hack API", lifespan=database_lifespan)
+app.include_router(companies_router)
 
 
 # -----------------------------
@@ -68,25 +59,32 @@ async def health():
 )
 async def analyze(request: AnalyzeRequest):
     try:
-        response = await client.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Ты финансовый аналитик. "
-                        "Объясняй возможное влияние "
-                        "экономических новостей на бизнес. "
-                        "Не выдумывай факты."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": request.news
-                }
-            ],
-            max_tokens=500
-        )
+        from openai import AsyncOpenAI
+
+        async with AsyncOpenAI(
+            api_key=os.environ["LLM_API_KEY"],
+            base_url=os.environ["LLM_BASE_URL"],
+            timeout=60.0,
+        ) as client:
+            response = await client.chat.completions.create(
+                model=os.environ["LLM_MODEL"],
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Ты финансовый аналитик. "
+                            "Объясняй возможное влияние "
+                            "экономических новостей на бизнес. "
+                            "Не выдумывай факты."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": request.news
+                    }
+                ],
+                max_tokens=500
+            )
 
         return AnalyzeResponse(
             analysis=response.choices[0].message.content or ""

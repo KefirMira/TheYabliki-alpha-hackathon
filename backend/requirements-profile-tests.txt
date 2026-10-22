@@ -1,0 +1,6 @@
+-r requirements-db.txt
+fastapi==0.156.8
+pydantic==2.14.1
+python-dotenv==1.2.4
+httpx==0.28.1
+pytest==9.1.1
