@@ -49,3 +49,11 @@ async def get_company_session(request: Request) -> AsyncIterator[AsyncSession]:
     except (SQLAlchemyError, OSError, TimeoutError) as error:
         # Never expose DSNs, credentials or SQL parameters in the API response.
         raise unavailable() from error
+
+
+def get_session_factory(request: Request):
+    """A factory, not a request-long transaction: AI must run outside a session."""
+    sessions = getattr(request.app.state, "company_sessions", None)
+    if sessions is None:
+        raise unavailable()
+    return sessions
