@@ -68,3 +68,23 @@ export interface IInsightCard extends IInsightFeedItem {
   sources: IInsightSource[]
   evidence: IInsightEvidence[]
 }
+
+/** Ответ анализа новости: `POST /api/companies/{source_id}/analyses` (201). */
+export interface ICreatedAnalysis {
+  run_id: number
+  insight_id: number
+  news_id: number
+  status: 'COMPLETED'
+  company_id: string
+  analysis: {
+    company_id: string
+    news: string
+    relevance: InsightRelevance | null
+    summary: string | null
+    risks: string[]
+    opportunities: string[]
+    recommendations: string[]
+    sources: IInsightSource[]
+    validation: { passed?: boolean; warnings?: string[] }
+  }
+}

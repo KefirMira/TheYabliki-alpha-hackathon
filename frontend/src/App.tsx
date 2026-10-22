@@ -1,10 +1,10 @@
 import { BrowserRouter } from 'react-router-dom'
 
-import { useLoadCompany } from './hooks/useLoadCompany'
+import { useScrollTopOnNavigate } from './hooks/useScrollTopOnNavigate'
 import { AppRoutes } from './routes'
 
 const AppContent = () => {
-  useLoadCompany()
+  useScrollTopOnNavigate()
   return <AppRoutes />
 }
 

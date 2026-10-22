@@ -1,57 +1,61 @@
-import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Suspense } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
+import PageLoader from '@/shared/ui/PageLoader'
 import PulseLogo from '@/shared/ui/PulseLogo'
 
-import CompanySwitcher from './CompanySwitcher'
 import { PULSE_TABS } from './config'
 
-/**
- * Каркас сервиса: шапка «Пульса бизнеса» с вкладками и переключателем
- * компании. Оболочка Альфа-Бизнеса (меню слева, шапка банка) — следующий шаг.
- */
-const PulseLayout = ({ children }: { children: ReactNode }) => (
-  <div className="min-h-screen bg-background">
-    <header className="border-b border-border bg-card">
-      <div className="mx-auto flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 px-4 pt-5 md:px-8">
-        <div className="flex items-center gap-3">
+/** Шапка сервиса «Пульс бизнеса» и вкладки Сводка · Инсайты · Моя компания. */
+const PulseLayout = () => {
+  const { pathname } = useLocation()
+
+  return (
+    <>
+      <div className="flex flex-col gap-3">
+        <div className="flex min-h-10 items-center gap-3">
           <PulseLogo />
-          <div>
-            <p className="text-lg font-bold leading-tight">Пульс бизнеса</p>
-            <p className="text-xs text-muted-foreground">в Альфа-Бизнесе</p>
-          </div>
+          <span className="flex flex-col gap-px">
+            <span className="text-[22px] font-bold leading-[1.15]">
+              Пульс бизнеса
+            </span>
+            <span className="text-[13px] text-ink-3">в Альфа-Бизнесе</span>
+          </span>
         </div>
-        <CompanySwitcher />
+
+        <nav
+          className="flex gap-7 overflow-x-auto border-b border-line-strong text-[15px]"
+          aria-label="Разделы Пульса"
+        >
+          {PULSE_TABS.map((tab) => {
+            const active = tab.match.some((prefix) =>
+              pathname.startsWith(prefix)
+            )
+            return (
+              <Link
+                key={tab.key}
+                to={tab.path}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 pb-3 pt-1.5 transition-colors',
+                  active
+                    ? 'border-ink font-semibold text-ink'
+                    : 'border-transparent font-medium text-ink-2 hover:text-ink'
+                )}
+              >
+                {tab.label}
+              </Link>
+            )
+          })}
+        </nav>
       </div>
 
-      <nav
-        className="mx-auto flex w-full max-w-[1280px] gap-6 overflow-x-auto px-4 md:px-8"
-        aria-label="Разделы Пульса"
-      >
-        {PULSE_TABS.map((tab) => (
-          <NavLink
-            key={tab.key}
-            to={tab.path}
-            className={({ isActive }) =>
-              cn(
-                'whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors',
-                isActive
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )
-            }
-          >
-            {tab.label}
-          </NavLink>
-        ))}
-      </nav>
-    </header>
-
-    <main className="mx-auto w-full max-w-[1280px] px-4 py-6 md:px-8">
-      {children}
-    </main>
-  </div>
-)
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
+    </>
+  )
+}
 
 export default PulseLayout

@@ -5,7 +5,8 @@ import {
 } from './apiErrors'
 
 const BASE = () => import.meta.env.VITE_BASE_API
-const TIMEOUT_MS = 20000
+/** Таймаут по умолчанию; анализ новости через LLM передаёт свой. */
+export const DEFAULT_TIMEOUT_MS = 20000
 
 /**
  * Ошибка API. `code` — стабильный код бэкенда (`COMPANY_NOT_FOUND`…) или
@@ -43,10 +44,11 @@ const codeOf = (body: unknown): string | null => {
 export const apiRequest = async <T>(
   path: string,
   init: RequestInit,
-  fallback: string
+  fallback: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<T> => {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(`${BASE()}${path}`, {
