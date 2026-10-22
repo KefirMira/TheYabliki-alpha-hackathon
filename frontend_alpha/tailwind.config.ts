@@ -59,6 +59,16 @@ export default {
           error: 'hsl(var(--status-error))',
           info: 'hsl(var(--status-info))',
         },
+        tone: {
+          risk: 'hsl(var(--tone-risk))',
+          'risk-foreground': 'hsl(var(--tone-risk-foreground))',
+          opportunity: 'hsl(var(--tone-opportunity))',
+          'opportunity-foreground': 'hsl(var(--tone-opportunity-foreground))',
+          mixed: 'hsl(var(--tone-mixed))',
+          'mixed-foreground': 'hsl(var(--tone-mixed-foreground))',
+          neutral: 'hsl(var(--tone-neutral))',
+          'neutral-foreground': 'hsl(var(--tone-neutral-foreground))',
+        },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',

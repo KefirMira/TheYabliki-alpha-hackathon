@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     host: '::',
     port: 5173,
+    // Бэкенд разрешает CORS только для localhost:5173. Без strictPort Vite
+    // при занятом порте тихо переезжает на 5174, и все запросы к API
+    // блокируются браузером — интерфейс пишет «Сервер недоступен».
+    strictPort: true,
   },
   plugins: [react()],
   resolve: {

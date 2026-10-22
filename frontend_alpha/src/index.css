@@ -49,6 +49,16 @@
     --status-warning: 36 100% 24%; /* #7A4A00 */
     --status-error: 4 76% 40%; /* #B42318 */
     --status-info: 223 68% 51%; /* #2B5BD7 */
+
+    /* Тоны тегов инсайтов: подложка + текст того же семейства. */
+    --tone-risk: 5 85% 95%; /* #FDE8E6 */
+    --tone-risk-foreground: 4 76% 40%; /* #B42318 */
+    --tone-opportunity: 143 47% 92.5%; /* #E3F5EA */
+    --tone-opportunity-foreground: 144 73% 28%; /* #137A3D */
+    --tone-mixed: 40 100% 91%; /* #FFF0D1 */
+    --tone-mixed-foreground: 36 100% 24%; /* #7A4A00 */
+    --tone-neutral: 225 11% 92.5%; /* #EAEBEE */
+    --tone-neutral-foreground: 224 5% 44%; /* #6B6E76 */
   }
 }
 

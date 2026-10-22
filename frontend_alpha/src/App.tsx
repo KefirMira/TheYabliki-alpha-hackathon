@@ -1,6 +1,13 @@
 import { BrowserRouter } from 'react-router-dom'
 
-// Каркас приложения: маршруты, лейаут и провайдеры появятся на следующих шагах.
+import { useLoadCompany } from './hooks/useLoadCompany'
+import { AppRoutes } from './routes'
+
+const AppContent = () => {
+  useLoadCompany()
+  return <AppRoutes />
+}
+
 const App = () => (
   <BrowserRouter
     future={{
@@ -8,9 +15,7 @@ const App = () => (
       v7_relativeSplatPath: true,
     }}
   >
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-muted-foreground">Пульс бизнеса — каркас</p>
-    </div>
+    <AppContent />
   </BrowserRouter>
 )
 

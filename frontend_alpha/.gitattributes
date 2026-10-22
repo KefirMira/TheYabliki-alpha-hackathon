@@ -1,0 +1,6 @@
+# Переводы строк — LF во всех текстовых файлах: Prettier требует LF, а
+# core.autocrlf=true на Windows иначе превращает их в CRLF при checkout.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.svg text eol=lf
