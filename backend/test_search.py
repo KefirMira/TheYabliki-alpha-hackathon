@@ -1,29 +1,36 @@
 ﻿
-from pathlib import Path
-
-from services.chunk_service import load_chunks
+from services.knowledge_base_service import load_knowledge_base
 from services.search_service import search_chunks
 
-base_dir = Path(__file__).resolve().parent
 
-json_path = (
-    base_dir / "data" / "processed" / "policy_rate.json"
-)
+def main():
+    chunks = load_knowledge_base()
 
-chunks = load_chunks(str(json_path))
+    print(f"\nВсего фрагментов в базе: {len(chunks)}")
 
-query = (
-    "Как сохранение ключевой ставки влияет "
-    "на кредитование компаний?"
-)
+    queries = [
+        "Как ключевая ставка влияет на кредитование компаний?",
+        "Какие риски существуют для металлургической отрасли?",
+        "Каковы перспективы рынка золота?",
+        "Что происходит с инфляцией в России?",
+    ]
 
-results = search_chunks(query, chunks)
+    for query in queries:
+        print("\n" + "=" * 70)
+        print(f"ЗАПРОС: {query}")
+        print("=" * 70)
 
-print(f"Найдено фрагментов: {len(results)}")
+        results = search_chunks(query, chunks)
 
-for index, result in enumerate(results, start=1):
-    print(f"\nРезультат №{index}")
-    print(f"Релевантность: {result['score']:.4f}")
-    print(f"Источник: {result['source']}")
-    print(f"Страница: {result['page']}")
-    print(result["text"][:500])
+        print(f"Найдено фрагментов: {len(results)}")
+
+        for index, result in enumerate(results, start=1):
+            print(f"\nРезультат №{index}")
+            print(f"Релевантность: {result['score']:.4f}")
+            print(f"Источник: {result['source']}")
+            print(f"Страница: {result['page']}")
+            print(result["text"][:400])
+
+
+if __name__ == "__main__":
+    main()
