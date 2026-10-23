@@ -270,4 +270,5 @@ class HTTPRSS:
         except SourceError:raise
         except TimeoutError:raise SourceError('RSS_TIMEOUT',retryable=True) from None
         except (OSError,http.client.HTTPException):raise SourceError('RSS_NETWORK_ERROR',retryable=True) from None
+        except (ValueError,UnicodeError):raise SourceError('RSS_PROTOCOL_ERROR') from None
         raise SourceError('RSS_REDIRECT_DENIED')

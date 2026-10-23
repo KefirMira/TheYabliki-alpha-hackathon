@@ -17,7 +17,7 @@ class State:
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
         version = self.db.execute("PRAGMA user_version").fetchone()[0]
-        if version not in {0, 1}:
+        if version not in {0, 1, 2}:
             self.db.close()
             raise ValueError("Unsupported parser state version")
         self.db.executescript("""
@@ -40,9 +40,15 @@ class State:
           http_status INTEGER, diagnostics TEXT NOT NULL DEFAULT '[]',
           PRIMARY KEY(queue_id,number));
         CREATE TABLE IF NOT EXISTS rate_limits (endpoint TEXT PRIMARY KEY, next_request REAL NOT NULL);
-        PRAGMA user_version=1;
         COMMIT;
         """)
+        with self.transaction():
+            columns={row[1] for row in self.db.execute('PRAGMA table_info(sources)')}
+            for name,definition in [('fetch_failures','INTEGER NOT NULL DEFAULT 0'),
+                                    ('next_fetch','REAL NOT NULL DEFAULT 0'),
+                                    ('fetch_blocked','INTEGER NOT NULL DEFAULT 0')]:
+                if name not in columns:self.db.execute(f'ALTER TABLE sources ADD COLUMN {name} {definition}')
+            self.db.execute('PRAGMA user_version=2')
 
     def close(self):
         self.db.close()
@@ -59,13 +65,16 @@ class State:
 
     def acquire(self, config, owner, now):
         with self.transaction():
+            locator=config.rss_url if config.source_mode=='http' else str(config.rss_path)
             self.db.execute("INSERT OR IGNORE INTO sources(name,locator) VALUES (?,?)",
-                            (config.source_name, str(config.rss_path)))
+                            (config.source_name, locator))
             source = self.db.execute("SELECT * FROM sources WHERE name=?", (config.source_name,)).fetchone()
+            if source['locator']!=locator and (config.source_mode=='http' or source['locator'].startswith(('http://','https://'))):
+                raise ValueError('RSS source_name is already bound to a different locator')
             if source['owner'] and source['lease_until'] > now:
                 return False
             self.db.execute("UPDATE sources SET owner=?,lease_until=?,locator=? WHERE name=?",
-                            (owner, now + config.lease_seconds, str(config.rss_path), config.source_name))
+                            (owner, now + config.lease_seconds, locator, config.source_name))
             # An expired process might have sent a request before dying. Count its attempt,
             # retain uncertainty, and redeliver using the same backend identity.
             self.db.execute("UPDATE attempts SET result='uncertain',finished_at=? WHERE result='inflight' AND queue_id IN (SELECT id FROM queue WHERE source=?)",
@@ -93,9 +102,10 @@ class State:
         # Namespaces avoid a GUID colliding with a literal URL. Never use a date/content hash.
         return "id:" + payload.source_id if payload.source_id is not None else "url:" + payload.url
 
-    def enqueue(self, source, items, now):
+    def enqueue(self, source, items, now, *, config=None, owner=None):
         ids = {}
         with self.transaction():
+            if config is not None:self.renew(config,owner,now)
             for item in items:
                 if item.payload is None:
                     continue
@@ -116,11 +126,38 @@ class State:
             row = self.db.execute("SELECT owner,lease_until FROM sources WHERE name=?", (source,)).fetchone()
             if row['owner'] != owner or row['lease_until'] <= now:
                 raise RuntimeError("Source lease lost before checkpoint")
-            self.db.execute("UPDATE sources SET last_success=?,last_error=NULL,etag=CASE WHEN ?=304 THEN coalesce(?,etag) ELSE ? END,last_modified=CASE WHEN ?=304 THEN coalesce(?,last_modified) ELSE ? END WHERE name=?",
+            self.db.execute("UPDATE sources SET last_success=?,last_error=NULL,fetch_failures=0,fetch_blocked=0,etag=CASE WHEN ?=304 THEN coalesce(?,etag) ELSE ? END,last_modified=CASE WHEN ?=304 THEN coalesce(?,last_modified) ELSE ? END WHERE name=?",
                             (now, scan.status, scan.etag, scan.etag, scan.status, scan.last_modified, scan.last_modified, source))
 
     def scan_error(self, source, owner, error):
         self.db.execute("UPDATE sources SET last_error=? WHERE name=? AND owner=?", (error, source, owner))
+
+    def begin_fetch(self,config,owner,now,reset=False):
+        with self.transaction():
+            self.renew(config,owner,now)
+            if reset:
+                self.db.execute('UPDATE sources SET fetch_failures=0,fetch_blocked=0 WHERE name=?',(config.source_name,))
+            row=self.db.execute('SELECT * FROM sources WHERE name=?',(config.source_name,)).fetchone()
+            if row['fetch_blocked']:return 'blocked'
+            if row['next_fetch']>now:return 'deferred'
+            # Persist rate reservation before networking, even if the process dies.
+            self.db.execute('UPDATE sources SET next_fetch=? WHERE name=?',(now+config.source_interval,config.source_name))
+            return 'ready'
+
+    def fetch_error(self,config,owner,error,now,random_value):
+        with self.transaction():
+            self.renew(config,owner,now)
+            row=self.db.execute('SELECT * FROM sources WHERE name=?',(config.source_name,)).fetchone()
+            failures=row['fetch_failures']+1
+            blocked=not error.retryable or failures>=config.max_attempts
+            delay=min(config.backoff_cap,config.backoff_base*2**min(failures-1,20))*(.5+.5*random_value)
+            due=max(row['next_fetch'],now+delay,error.retry_at or now)
+            self.db.execute('UPDATE sources SET fetch_failures=?,fetch_blocked=?,next_fetch=?,last_error=? WHERE name=?',
+                (failures,int(blocked),due,error.code,config.source_name))
+
+    def fetch_status(self,source):
+        row=self.db.execute('SELECT fetch_failures,fetch_blocked,next_fetch,last_error FROM sources WHERE name=?',(source,)).fetchone()
+        return dict(row)
 
     def rows(self, source):
         return self.db.execute("SELECT * FROM queue WHERE source=? ORDER BY id", (source,)).fetchall()

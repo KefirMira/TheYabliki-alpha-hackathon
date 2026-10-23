@@ -12,11 +12,12 @@ from xml.etree.ElementTree import ParseError
 from .backend_client import BackendClient
 from .models import NewsPayload
 from .source import fetch_local
+from .http_source import HTTPRSS, SourceError
 from .state import State
 
 
 def collect_once(config, backend=None, *, clock=time.time, stop=None, wait=None,
-                 random_value=random.random, fetch=fetch_local, after_enqueue=None):
+                 random_value=random.random, fetch=None, after_enqueue=None, reset_source=False):
     stop = stop if stop is not None else Event()
     wait = wait or stop.wait
     state = State(config.state_path)
@@ -24,6 +25,8 @@ def collect_once(config, backend=None, *, clock=time.time, stop=None, wait=None,
     backend = backend or BackendClient(config, clock=clock)
     results, deliveries, source_error = [], {}, None
     acquired = False
+    fetch=fetch or (HTTPRSS() if config.source_mode=='http' else fetch_local)
+    source_status='ready'
     try:
         acquired = state.acquire(config, owner, clock())
         if not acquired:
@@ -31,15 +34,20 @@ def collect_once(config, backend=None, *, clock=time.time, stop=None, wait=None,
                     "items": [], "failed": False, "source_busy": True}
         items = []
         try:
-            scan = fetch(config, state.headers(config.source_name))
-            if scan.status not in {200, 304} or (scan.status == 304 and scan.items):
-                raise ValueError("Invalid source response")
-            items = scan.items
-            state.renew(config, owner, clock())
-            state.enqueue(config.source_name, items, clock())
-            if after_enqueue is not None:
-                after_enqueue()  # Test seam: outbox is already committed, checkpoint is not.
-            state.checkpoint(config.source_name, owner, scan, clock())
+            if config.source_mode=='http':source_status=state.begin_fetch(config,owner,clock(),reset_source)
+            if source_status=='ready':
+                scan = fetch(config, state.headers(config.source_name))
+                if scan.status not in {200, 304} or (scan.status == 304 and scan.items):
+                    raise ValueError("Invalid source response")
+                items = scan.items
+                state.enqueue(config.source_name, items, clock(),config=config,owner=owner)
+                if after_enqueue is not None:
+                    after_enqueue()  # Outbox committed; checkpoint deliberately not yet advanced.
+                state.checkpoint(config.source_name, owner, scan, clock())
+            elif source_status=='blocked':source_error='RSS_SOURCE_BLOCKED'
+        except SourceError as error:
+            source_error=error.code
+            state.fetch_error(config,owner,error,clock(),random_value())
         except (OSError, ValueError, ParseError) as error:
             source_error = type(error).__name__
             state.scan_error(config.source_name, owner, source_error)
@@ -74,6 +82,7 @@ def collect_once(config, backend=None, *, clock=time.time, stop=None, wait=None,
         failed = source_error is not None or any(row['status'] != 'delivered' for row in rows.values())
         return {"source_name": config.source_name, "counts": dict(Counter(item['status'] for item in results)),
                 "items": results, "failed": failed, "source_error": source_error,
+                "source_fetch_status":source_status,"source_fetch":state.fetch_status(config.source_name),
                 "queue_counts": dict(Counter(row['status'] for row in rows.values()))}
     finally:
         if acquired:

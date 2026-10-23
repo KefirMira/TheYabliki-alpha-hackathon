@@ -25,6 +25,12 @@ class Config:
     poll_interval: float
     request_interval: float
     lease_seconds: float
+    source_mode: str = 'local'
+    rss_url: str | None = None
+    http_enabled: bool = False
+    source_interval: float = 300
+    max_response_bytes: int = 1_048_576
+    max_redirects: int = 3
 
     @classmethod
     def from_env(cls, env=None):
@@ -69,5 +75,20 @@ class Config:
         poll = number("PARSER_POLL_INTERVAL", 30, .01, 86400)
         interval = number("PARSER_REQUEST_INTERVAL", .2, .001, 60)
         lease = number("PARSER_LEASE_SECONDS", 180, timeout + interval + 10, 86400)
+        mode=env.get('PARSER_SOURCE_MODE','local')
+        if mode not in {'local','http'}:raise ValueError('PARSER_SOURCE_MODE must be local or http')
+        enabled=env.get('PARSER_HTTP_RSS_ENABLED','0')
+        if enabled not in {'0','1'}:raise ValueError('PARSER_HTTP_RSS_ENABLED must be 0 or 1')
+        url=env.get('PARSER_RSS_URL') or None
+        if mode=='http':
+            if enabled!='1' or not url or not env.get('PARSER_SOURCE_NAME'):
+                raise ValueError('HTTP RSS requires explicit enable, URL and stable source_name')
+            from .http_source import parse_url
+            parse_url(url)  # Syntax only; no DNS or request during configuration.
+        source_interval=number('PARSER_SOURCE_INTERVAL',300,1,86400)
+        size=int(env.get('PARSER_RSS_MAX_BYTES','1048576'))
+        redirects=int(env.get('PARSER_RSS_MAX_REDIRECTS','3'))
+        if not 1<=size<=1048576 or not 0<=redirects<=5:
+            raise ValueError('RSS size must be 1..1048576; redirects 0..5')
         return cls(rss, report, base.rstrip("/"), source, timeout, state,
-                   attempts, delay, cap, poll, interval, lease)
+                   attempts, delay, cap, poll, interval, lease,mode,url,enabled=='1',source_interval,size,redirects)
