@@ -21,11 +21,13 @@ try {
     $before = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/fingerprint.sql
     SqlFile '/audit/migrations/002_pulse_features.sql'
     SqlFile '/audit/migrations/003_integrity.sql'
+    SqlFile '/audit/migrations/004_news_external_identity.sql'
     SqlFile '/audit/tests/fixtures/pulse.sql'
     $pulseBefore = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/pulse_fingerprint.sql
     SqlFile '/audit/tests/verify.sql'
     SqlFile '/audit/migrations/002_pulse_features.sql'
     SqlFile '/audit/migrations/003_integrity.sql'
+    SqlFile '/audit/migrations/004_news_external_identity.sql'
     SqlFile '/audit/tests/verify.sql'
     $after = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/fingerprint.sql
     $pulseAfter = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/pulse_fingerprint.sql
