@@ -53,6 +53,11 @@ try {
         Sql '/audit/migrations/004_news_external_identity.sql' | Out-Null
         Sql '/audit/migrations/004_news_external_identity.sql' | Out-Null
     }
+    $jobsMigration = Join-Path $DatabaseRoot 'migrations/005_saved_news_analysis_jobs.sql'
+    if (Test-Path -LiteralPath $jobsMigration -PathType Leaf) {
+        Sql '/audit/migrations/005_saved_news_analysis_jobs.sql' | Out-Null
+        Sql '/audit/migrations/005_saved_news_analysis_jobs.sql' | Out-Null
+    }
     Sql '/audit/tests/fixtures/base.sql' | Out-Null
     $before = Compose exec -T postgres psql -X -At -U audit_user -d theyabliki_test -f /audit/tests/fingerprint.sql
     $env:PROFILE_TEST_DATABASE_URL = "postgresql+asyncpg://audit_user:$($env:DB_TEST_PASSWORD)@127.0.0.1:$($env:DB_TEST_PORT)/theyabliki_test"

@@ -127,7 +127,10 @@ def test_rag_captures_exact_selected_text_without_changing_legacy_response(monke
         model="synthetic-model", usage=None,
     ))
     fake_openai = ModuleType("openai")
-    fake_openai.AsyncOpenAI = lambda **kwargs: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=completion)))
+    sdk_options = []
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=completion)))
+    fake_client.with_options = lambda **kwargs: (sdk_options.append(kwargs) or fake_client)
+    fake_openai.AsyncOpenAI = lambda **kwargs: fake_client
     monkeypatch.setitem(sys.modules, "openai", fake_openai)
     for key in ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL"):
         monkeypatch.setenv(key, "synthetic-test-only")
@@ -148,6 +151,11 @@ def test_rag_captures_exact_selected_text_without_changing_legacy_response(monke
     assert enriched["evidence"][0]["text"] == selected["text"]
     assert enriched["evidence"][0]["date"] == "2026-08"
     assert enriched["model_name"] == "synthetic-model"
+    from services.protected_ai import invoke, protected_call
+    protected = asyncio.run(invoke(rag.analyze_with_rag, question='Synthetic', include_evidence=True))
+    assert protected['evidence'] == enriched['evidence']
+    assert sdk_options == [{'max_retries': 0, 'timeout': 120}]
+    assert protected_call.get() is False
 
 
 def test_personalization_legacy_contract_and_internal_bundle(monkeypatch, bundle_factory):

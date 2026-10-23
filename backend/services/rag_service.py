@@ -7,6 +7,7 @@ from openai import AsyncOpenAI
 
 from services.knowledge_base_service import load_knowledge_base
 from services.search_service import search_chunks
+from services.protected_ai import protected_call, SDK_TIMEOUT_SECONDS
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -95,7 +96,8 @@ async def analyze_with_rag(
 
     context = "\n\n".join(context_parts)
 
-    response = await client.chat.completions.create(
+    selected_client = client.with_options(max_retries=0, timeout=SDK_TIMEOUT_SECONDS) if protected_call.get() else client
+    response = await selected_client.chat.completions.create(
         model=MODEL,
         messages=[
             {

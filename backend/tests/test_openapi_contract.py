@@ -19,7 +19,7 @@ def test_all_eleven_operations_are_documented():
     assert spec["components"]["schemas"]["ExternalNewsInput"]["required"] == ["title", "content"]
     saved = spec["paths"]["/api/companies/{source_id}/news/{news_id}/analyses"]["post"]
     assert "requestBody" not in saved
-    assert {"201", "404", "422", "502", "503"} == set(saved["responses"])
+    assert {"200", "201", "404", "409", "422", "502", "503"} == set(saved["responses"])
 
 
 def test_rag_documentation_does_not_filter_runtime_response(monkeypatch):

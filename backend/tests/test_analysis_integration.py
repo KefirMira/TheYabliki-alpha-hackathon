@@ -22,7 +22,9 @@ def analysis_database(test_database_url):
 
     async def snapshot():
         async with engine.connect() as connection:
-            return {table.name: list((await connection.execute(select(table.c.id))).scalars()) for table in tables}
+            result = {table.name: list((await connection.execute(select(table.c.id))).scalars()) for table in tables}
+            result['jobs'] = list((await connection.execute(text('SELECT id FROM news_analysis_jobs'))).scalars())
+            return result
 
     before = asyncio.run(snapshot())
     yield SimpleNamespace(engine=engine, sessions=async_sessionmaker(engine, expire_on_commit=False))
@@ -30,6 +32,11 @@ def analysis_database(test_database_url):
     async def cleanup():
         try:
             async with engine.begin() as connection:
+                # Delete only this test's new coordination rows, before their history FKs.
+                await connection.execute(text('DELETE FROM news_analysis_attempts WHERE NOT (run_id = ANY(:ids))'),
+                                         {'ids':before['analysis_runs']})
+                await connection.execute(text('DELETE FROM news_analysis_jobs WHERE NOT (id = ANY(:ids))'),
+                                         {'ids':before['jobs']})
                 for table in tables:
                     await connection.execute(delete(table).where(table.c.id.not_in(before[table.name])))
         finally:
