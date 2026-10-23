@@ -48,7 +48,7 @@ def test_demo_readiness_requires_database_only(monkeypatch, database_ready):
         async def execute(self, *args):
             class Result:
                 def scalar_one(self):
-                    return "exists" if database_ready else None
+                    return True if database_ready else None
             return Result()
 
     with TestClient(app) as client:

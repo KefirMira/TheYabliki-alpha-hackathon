@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db.session import get_session_factory, unavailable
 from schemas.news import ExternalNewsInput, IngestedNews
+from schemas.http_docs import APIError
 from services.news_ingestion_service import NewsIdentityConflict, NewsIngestionRetry, NewsIngestionService
 from settings import execution_mode
 
@@ -28,10 +29,10 @@ def demo_policy(news: ExternalNewsInput):
 
 @router.post("", response_model=IngestedNews, status_code=201, responses={
     200: {"model": IngestedNews, "description": "Existing news, unchanged; inspect diagnostics"},
-    403: {"description": "Demo synthetic data policy rejected the input"},
-    409: {"description": "Pair and URL identify different stored news"},
-    503: {"description": "Database unavailable or bounded concurrency retry required"},
-})
+    403: {"model": APIError, "description": "Demo synthetic data policy rejected the input"},
+    409: {"model": APIError, "description": "Pair and URL identify different stored news"},
+    503: {"model": APIError, "description": "Database unavailable or bounded concurrency retry required"},
+}, description="EXTERNAL без AI. Обязательны title/content (до 500/100000). Пара source_name+source_id — основной ключ, канонический HTTP(S) URL — дополнительный. Без идентификаторов дедупликации нет. Дубликат не перезаписывается; даты с timezone. Demo: synthetic-demo / SYNTH-* / example.invalid.")
 async def ingest_news(response: Response, news: ExternalNewsInput = Depends(demo_policy),
                       service: NewsIngestionService = Depends(get_news_service)):
     try:

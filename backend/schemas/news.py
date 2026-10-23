@@ -14,10 +14,10 @@ class ExternalNewsInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=1, max_length=500, strict=True)
     content: str = Field(min_length=1, max_length=100_000, strict=True)
-    url: str | None = Field(default=None, min_length=1, max_length=2048, strict=True)
+    url: str | None = Field(default=None, min_length=1, max_length=2048, strict=True, description="HTTP(S), без credentials; canonical scheme/host, без fragment/tracking; path и HTTP/HTTPS различаются")
     source_name: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[a-z0-9._-]+$", strict=True)
-    source_id: str | None = Field(default=None, min_length=1, max_length=500, strict=True)
-    published_at: AwareDatetime | None = None
+    source_id: str | None = Field(default=None, min_length=1, max_length=500, strict=True, description="Регистр сохраняется; запрещены крайние ASCII whitespace и NUL; Unicode-пробелы отдельно не нормализуются")
+    published_at: AwareDatetime | None = Field(default=None, description="ISO 8601 с явным timezone; отсутствие не заменяется временем приёма")
     language: str | None = Field(default=None, min_length=1, max_length=10, strict=True)
 
     @field_validator("title", "content", "language")

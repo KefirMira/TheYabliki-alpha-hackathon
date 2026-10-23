@@ -8,6 +8,8 @@ from sqlalchemy import text
 
 from services.knowledge_base_service import load_knowledge_base
 from settings import execution_mode
+from db.readiness import news_identity_ready
+from schemas.http_docs import ReadinessResponse
 
 router = APIRouter()
 TABLES = (
@@ -31,7 +33,9 @@ def rag_ready() -> bool:
         return False
 
 
-@router.get("/ready")
+@router.get("/ready", responses={200: {"model": ReadinessResponse},
+    503: {"model": ReadinessResponse, "description": "Компоненты не готовы; без DDL и обращения к LLM"}},
+    description="13 таблиц и проверенные определения CHECK/UNIQUE миграции 004. В demo требуется только БД; в full также RAG и конфигурация LLM (без запроса провайдеру).")
 async def readiness(request: Request):
     checks = {
         "rag": await asyncio.to_thread(rag_ready),
@@ -51,7 +55,7 @@ async def readiness(request: Request):
                         if result.scalar_one() is None:
                             break
                     else:
-                        checks["database"] = True
+                        checks["database"] = await news_identity_ready(session)
         except Exception:
             # No paths, DSNs, SQL or provider credentials in public diagnostics.
             pass

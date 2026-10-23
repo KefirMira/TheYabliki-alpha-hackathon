@@ -104,3 +104,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File backend/tests/run-profile-te
 сохраняет том. Он не загружает реальные CSV. Не удалять чужие контейнеры/тома.
 На Linux/macOS unit/API тесты запускаются указанным Python; полный PowerShell
 runner пока проверен на Windows.
+
+
+## Уточнения v1.14.1
+
+Все 11 операций, ошибки и ограничения описаны в [API_CONTRACT.md](API_CONTRACT.md). `/ready` теперь требует проверенные CHECK и UNIQUE-индекс миграции 004; отсутствующая или некорректная 004 даёт 503. Проверка только читает каталог PostgreSQL 16 и не применяет DDL. Старый demo-том обновляется вручную по согласованной инструкции миграции. `/health` не изменён.

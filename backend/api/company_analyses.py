@@ -9,6 +9,7 @@ from services.company_analysis_service import (
 )
 from services.company_profile_service import CompanyNotFound
 from api.runtime import require_ai_enabled
+from schemas.http_docs import ANALYSIS_ERRORS
 
 
 router = APIRouter(prefix="/api/companies", tags=["company analyses"])
@@ -23,7 +24,8 @@ def get_analysis_service(sessions=Depends(get_session_factory), analyzer=Depends
 
 
 @router.post("/{source_id}/analyses", response_model=CreatedCompanyAnalysis, status_code=201,
-             dependencies=[Depends(require_ai_enabled)])
+             dependencies=[Depends(require_ai_enabled)], responses=ANALYSIS_ERRORS,
+             description="MANUAL-новость и новый запуск. news.text: 1–100000; title необязателен, до 500. Без идемпотентности; demo: 503.")
 async def create_company_analysis(
     request: CompanyAnalysisRequest,
     source_id: str = Path(min_length=1, max_length=200),
@@ -33,12 +35,8 @@ async def create_company_analysis(
 
 
 @router.post("/{source_id}/news/{news_id}/analyses", response_model=CreatedCompanyAnalysis, status_code=201,
-             dependencies=[Depends(require_ai_enabled)], responses={
-                 404: {"description": "Company or saved news not found; no run created"},
-                 422: {"description": "Invalid ID or saved content unavailable/over 100000 characters"},
-                 502: {"description": "AI failed; run marked FAILED when possible"},
-                 503: {"description": "AI disabled in demo, database/storage failure or uncertain run status"},
-             })
+             dependencies=[Depends(require_ai_enabled)], responses=ANALYSIS_ERRORS,
+             description="Существующая новость не изменяется. Отдельный запуск для компании; повтор может вызвать новый LLM-запрос. Тело не требуется. Demo: 503.")
 async def analyze_saved_news(
     source_id: str = Path(min_length=1, max_length=200),
     news_id: int = Path(gt=0, le=9223372036854775807),
