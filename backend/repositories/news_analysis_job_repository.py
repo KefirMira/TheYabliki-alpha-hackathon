@@ -96,3 +96,49 @@ class NewsAnalysisJobRepository:
         await self.session.execute(text("""UPDATE public.news_analysis_attempts
             SET insight_id=:insight,response_payload=CAST(:payload AS jsonb) WHERE run_id=:run"""),
             {'run':claim.run_id,'insight':payload['insight_id'],'payload':json.dumps(payload,ensure_ascii=False)})
+
+    async def require_review(self, claim):
+        await self.session.execute(text("""UPDATE public.news_analysis_attempts
+            SET retry_policy='REVIEW_REQUIRED' WHERE run_id=:run"""), {'run':claim.run_id})
+
+    async def inspect_stalled(self):
+        result = await self.session.execute(text("""SELECT j.id AS job_id,j.company_id,j.news_id,
+            a.run_id,a.attempt_no,a.deadline_at,a.dispatch_started_at,a.retry_policy,r.status
+            FROM public.news_analysis_jobs j JOIN public.news_analysis_attempts a ON a.job_id=j.id
+            JOIN public.analysis_runs r ON r.id=a.run_id
+            WHERE r.status='RUNNING' AND a.deadline_at<=clock_timestamp()
+            ORDER BY a.deadline_at,a.run_id LIMIT 100"""))
+        return [dict(row) for row in result.mappings()]
+
+    async def administer(self, company_id, news_id, expected_run_id, action, actor, reason,
+                         worker_stopped=False, provider_finished=False):
+        if not actor.strip() or not reason.strip() or not worker_stopped or not provider_finished:
+            raise AnalysisConflict('ANALYSIS_ADMIN_ATTESTATION_REQUIRED', expected_run_id)
+        # Never create a new job as an administrative side effect.
+        result = await self.session.execute(text("""SELECT * FROM public.news_analysis_jobs
+            WHERE company_id=:company AND news_id=:news FOR UPDATE"""),
+            {'company':company_id,'news':news_id})
+        job = result.mappings().one_or_none()
+        row = await self.latest(job['id']) if job else None
+        if not row or row['run_id'] != expected_run_id:
+            raise AnalysisConflict('ANALYSIS_ADMIN_STALE_RUN', expected_run_id)
+        if row['status']=='COMPLETED':
+            raise AnalysisConflict('ANALYSIS_ALREADY_COMPLETED', expected_run_id)
+        if action=='close':
+            if row['status']!='RUNNING':
+                raise AnalysisConflict('ANALYSIS_ATTEMPT_CLOSED', expected_run_id)
+            await AnalysisRunRepository(self.session).finish(expected_run_id,'FAILED',error_message='ADMIN_CLOSED_UNCERTAIN')
+            policy='REVIEW_REQUIRED'
+        elif action=='approve-retry':
+            if row['attempt_no']>=job['max_attempts']:
+                raise AnalysisConflict('ANALYSIS_ATTEMPT_LIMIT_REACHED', expected_run_id)
+            if row['status']!='FAILED' or row['insight_id'] is not None or row['response_payload'] is not None:
+                raise AnalysisConflict('ANALYSIS_REVIEW_REQUIRED', expected_run_id)
+            policy='MANUAL_APPROVED'
+        else:
+            raise ValueError('Unsupported administration action')
+        await self.session.execute(text("""UPDATE public.news_analysis_attempts SET
+            retry_policy=:policy,retry_reason=:reason,retry_authorized_by=:actor,
+            retry_authorized_at=clock_timestamp(),retry_not_before=clock_timestamp()
+            WHERE run_id=:run"""),
+            {'policy':policy,'reason':reason,'actor':actor,'run':expected_run_id})

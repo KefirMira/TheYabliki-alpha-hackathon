@@ -131,9 +131,7 @@ class CompanyAnalysisService:
                             row = await jobs.owner(claim, allow_completed=True)
                             if row['status'] == 'COMPLETED':
                                 return cached_analysis(row['response_payload'], reused=False)
-                            from sqlalchemy import text
-                            await session.execute(text("""UPDATE public.news_analysis_attempts
-                                SET retry_policy='REVIEW_REQUIRED' WHERE run_id=:run"""), {'run':run_id})
+                            await jobs.require_review(claim)
                         await AnalysisRunRepository(session).finish(run_id, "FAILED", error_message=phase)
             except AnalysisConflict:
                 raise
