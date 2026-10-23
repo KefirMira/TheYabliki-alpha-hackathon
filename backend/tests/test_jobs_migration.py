@@ -6,11 +6,11 @@ import asyncpg
 import pytest
 
 from db.job_schema import JOB_SCHEMA_SQL, JOB_SCHEMA_SIGNATURE
-from test_news_identity_migration import isolated_database, apply, identity_dsn, rows
+from test_news_identity_migration import isolated_database, apply, identity_dsn, rows, DATABASE_ROOT
 
 pytestmark = pytest.mark.integration
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = (ROOT / 'database/migrations/005_saved_news_analysis_jobs.sql').read_text(encoding='utf-8')
+MIGRATION = (DATABASE_ROOT / 'migrations/005_saved_news_analysis_jobs.sql').read_text(encoding='utf-8')
 
 
 async def apply_jobs(connection):

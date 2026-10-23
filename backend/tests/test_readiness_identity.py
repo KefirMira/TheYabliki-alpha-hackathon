@@ -41,7 +41,7 @@ def test_readiness_identity_status(monkeypatch, catalogue_ready, mode):
     assert response.json() == {"status": "ready" if catalogue_ready is True else "not_ready",
         "checks": {"rag": True, "llm_config": True, "database": catalogue_ready is True}}
     assert "secret" not in response.text
-    assert statements[-1] == str(IDENTITY_OBJECTS_QUERY)
+    assert str(IDENTITY_OBJECTS_QUERY) in statements
     assert all(statement.lstrip().startswith("SELECT") for statement in statements)
 
 

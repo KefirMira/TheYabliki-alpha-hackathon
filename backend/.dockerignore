@@ -14,3 +14,5 @@
 !schemas/*.py
 !services/
 !services/*.py
+
+!analysis_admin.py

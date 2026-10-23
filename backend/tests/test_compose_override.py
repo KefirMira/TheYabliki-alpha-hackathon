@@ -40,7 +40,8 @@ def test_runner_uses_same_compose_files_including_finally(tmp_path, runner, mode
     python.parent.mkdir(parents=True)
     python.touch()  # Never executed: injected SQL failure precedes pytest.
     for file in ('compose.test.yml', 'schema.sql', 'migrations/002_pulse_features.sql',
-                 'migrations/003_integrity.sql', 'tests/fixtures/base.sql', 'tests/fingerprint.sql'):
+                 'migrations/003_integrity.sql', 'migrations/004_news_external_identity.sql',
+                 'migrations/005_saved_news_analysis_jobs.sql', 'tests/fixtures/base.sql', 'tests/fingerprint.sql'):
         target = repo / 'database' / file
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text('-- synthetic runner stub', encoding='utf-8')

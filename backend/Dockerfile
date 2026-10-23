@@ -4,7 +4,7 @@ WORKDIR /app
 COPY requirements.txt requirements-db.txt ./
 RUN pip install --no-cache-dir -r requirements.txt && pip check
 RUN useradd --create-home --uid 10001 backend
-COPY main.py settings.py ./
+COPY main.py settings.py analysis_admin.py ./
 COPY api ./api
 COPY db ./db
 COPY repositories ./repositories

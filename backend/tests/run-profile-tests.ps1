@@ -12,7 +12,7 @@ if (-not (Test-Path -LiteralPath $DatabaseRoot -PathType Container)) {
     throw 'Pass -DatabaseRoot <PR-2-checkout/database>; database infrastructure is a separate dependency'
 }
 $DatabaseRoot = (Resolve-Path -LiteralPath $DatabaseRoot).Path
-foreach ($file in @('compose.test.yml','schema.sql','migrations/002_pulse_features.sql','migrations/003_integrity.sql','tests/fixtures/base.sql','tests/fingerprint.sql')) {
+foreach ($file in @('compose.test.yml','schema.sql','migrations/002_pulse_features.sql','migrations/003_integrity.sql','migrations/004_news_external_identity.sql','migrations/005_saved_news_analysis_jobs.sql','tests/fixtures/base.sql','tests/fingerprint.sql')) {
     if (-not (Test-Path -LiteralPath (Join-Path $DatabaseRoot $file) -PathType Leaf)) {
         throw "Missing database dependency: $file"
     }

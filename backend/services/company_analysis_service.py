@@ -87,7 +87,16 @@ class CompanyAnalysisService:
                     raise NewsNotAnalyzable(news_id)
                 claim = await NewsAnalysisJobRepository(session).claim(record.id, news_id)
         if claim.cached is not None:
-            return cached_analysis(claim.cached)
+            try:
+                cached = cached_analysis(claim.cached)
+                response = cached.cached_response
+                if (response.run_id != claim.run_id or response.news_id != news_id
+                        or response.company_id != source_id or response.analysis.company_id != source_id
+                        or response.analysis.news != news):
+                    raise ValueError('Stored response does not match the pair/input')
+                return cached
+            except (ValueError, TypeError, KeyError) as error:
+                raise AnalysisConflict('ANALYSIS_HISTORY_INVALID',claim.run_id) from error
         return await self._execute(source_id, news, record, news_id, claim.run_id, claim)
 
     async def _execute(self, source_id, news, record, news_id, run_id, claim=None) -> SavedAnalysis:

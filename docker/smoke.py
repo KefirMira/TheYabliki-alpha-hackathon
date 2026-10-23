@@ -62,7 +62,9 @@ def main():
     assert duplicate["news_id"] == existing["news_id"] and duplicate["duplicate"]
     assert "CONTENT_MISMATCH" in duplicate["diagnostics"]
     call("/api/news", 403, data={"title": "Synthetic policy rejection", "content": "Synthetic text"})
-    assert len(call("/openapi.json")[0]["paths"]) == 11
+    spec=call("/openapi.json")[0]
+    assert len(spec["paths"]) == 11 and spec['info']['version']=='1.15.0'
+    assert {'200','201','409'} <= set(spec['paths']['/api/companies/{source_id}/news/{news_id}/analyses']['post']['responses'])
     print("PASS: demo readiness, Decimal profile, feed/card, pagination, isolation, errors, CORS, news ingestion/duplicate/policy, all AI routes blocked")
 
 
