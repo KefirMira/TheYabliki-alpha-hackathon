@@ -39,7 +39,7 @@ def test_boundaries_and_no_match(text):
     assert match_news({'title': text}, [company()])['status'] == 'NO_MATCH'
 
 
-@pytest.mark.parametrize('name', ['Мир', 'ООО «Вектор»', 'Банк', 'Рост'])
+@pytest.mark.parametrize('name', ['Мир', 'ООО «Вектор»', 'Банк', 'Рост', 'Торговый дом', 'Строительная компания'])
 def test_weak_names_are_not_links(name):
     result = match_news({'title': name}, [company(name=name)])
     assert result['status'] == 'AMBIGUOUS'

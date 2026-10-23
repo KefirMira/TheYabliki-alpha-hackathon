@@ -105,6 +105,8 @@ def test_frontend_fixture_is_compatible(identity_dsn):
     async def scenario():
         async with isolated_database(identity_dsn) as (connection, _):
             await apply(connection)
+            for migration in ('005_saved_news_analysis_jobs.sql', '006_news_company_matching.sql'):
+                await connection.execute((DATABASE_ROOT / 'migrations' / migration).read_text(encoding='utf-8'))
             await connection.execute((ROOT / "docker/frontend-demo.sql").read_text(encoding="utf-8"))
             before = await rows(connection)
             await apply(connection)

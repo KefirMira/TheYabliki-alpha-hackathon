@@ -6,11 +6,14 @@
 powershell -NoProfile -ExecutionPolicy Bypass -File database/tests/run.ps1
 ```
 
-Скрипт проверяет 13 таблиц, FK, ограничения, повтор миграций и хранение AI-ответа без LLM. Создаёт отдельный PostgreSQL 16 и останавливает его с сохранением тома.
+Скрипт проверяет 18 таблиц, FK, ограничения, повтор миграций и хранение AI-ответа без LLM. Создаёт отдельный PostgreSQL 16 и останавливает его с сохранением тома.
 Подробности: [DATABASE_HANDOFF.md](../docs/DATABASE_HANDOFF.md).
 
 Проект миграции 004 и порядок ревью/применения:
 [NEWS_IDENTITY_MIGRATION.md](../docs/NEWS_IDENTITY_MIGRATION.md).
-Новые Docker demo-базы применяют schema → 002 → 003 → 004 перед фикстурами.
+Новые Docker demo-базы применяют schema → 002 → 003 → 004 → 005 → 006 перед фикстурами.
 Существующие тома автоматически не мигрируются; явная процедура с preflight
 и backup описана в NEWS_IDENTITY_MIGRATION.md. Общая БД требует отдельного разрешения.
+
+Сопоставление компаний без AI, миграция 006 и локальный CLI:
+[NEWS_COMPANY_MATCHING.md](../docs/NEWS_COMPANY_MATCHING.md).

@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 execution_mode()  # Invalid modes must never silently enable paid analysis.
 
-app = FastAPI(title="Alfa Hack API", version="1.15.0", lifespan=database_lifespan)
+app = FastAPI(title="Alfa Hack API", version="1.17.0", lifespan=database_lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()],

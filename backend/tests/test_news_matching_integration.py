@@ -88,12 +88,43 @@ def test_006_constraints_and_selected_sql(identity_dsn):
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize('mutation', [None, 'before_006',
+    'DROP INDEX ix_news_company_match_latest',
+    'ALTER TABLE company_verified_names ALTER COLUMN verified_by DROP NOT NULL'])
+def test_ready_requires_006_readonly(identity_dsn, monkeypatch, mutation):
+    import httpx
+    from contextlib import asynccontextmanager
+    from main import app
+    monkeypatch.setenv('AI_MODE', 'demo')
+    async def scenario():
+        async with job_database(identity_dsn) as (_, sessions, c, news):
+            if mutation != 'before_006':
+                await c.execute(MIGRATION.read_text(encoding='utf-8'))
+            if mutation and mutation != 'before_006':
+                await c.execute(mutation)
+            @asynccontextmanager
+            async def readonly():
+                async with sessions() as session:
+                    await session.execute(text('SET TRANSACTION READ ONLY'))
+                    yield session
+            previous = getattr(app.state, 'company_sessions', None)
+            app.state.company_sessions = readonly
+            try:
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+                    response = await client.get('/ready')
+                    assert response.status_code == (200 if mutation is None else 503)
+            finally:
+                app.state.company_sessions = previous
+    asyncio.run(scenario())
+
+
 def test_matching_alias_no_match_missing_news_and_rollback(identity_dsn):
     async def scenario():
         async with job_database(identity_dsn) as (_, sessions, c, news):
             await c.execute(MIGRATION.read_text(encoding='utf-8'))
             await c.execute("UPDATE companies SET name='RegistryCompany' || id")
             service = NewsMatchingService(sessions)
+            await c.execute('''UPDATE companies SET source_data='{"aliases":["Synthetic saved news"]}'::jsonb''')
             assert (await service.match(news))['status'] == 'NO_MATCH'
             company = await c.fetchval("SELECT min(id) FROM companies")
             await c.execute("""INSERT INTO company_verified_names(company_id,name,verified_by,provenance)

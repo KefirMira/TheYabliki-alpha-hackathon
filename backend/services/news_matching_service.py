@@ -1,4 +1,5 @@
 """Single-news, atomic, repeatable matching. No AI imports or analysis writes."""
+from sqlalchemy import text
 from repositories.news_match_repository import NewsMatchRepository
 from services.company_news_matcher import ALGORITHM_VERSION, digest, match_news
 
@@ -9,6 +10,7 @@ class NewsMatchingService:
 
     async def match(self, news_id):
         async with self.sessions() as session, session.begin():
+            await session.execute(text("SET LOCAL lock_timeout = '5s'"))
             repository = NewsMatchRepository(session)
             # Serializes only this news. All reads/writes finish in one transaction.
             news = await repository.lock_news(news_id)
@@ -25,4 +27,5 @@ class NewsMatchingService:
 
     async def show(self, news_id, run_id=None):
         async with self.sessions() as session, session.begin():
+            await session.execute(text('SET TRANSACTION READ ONLY'))
             return await NewsMatchRepository(session).get(news_id, run_id)

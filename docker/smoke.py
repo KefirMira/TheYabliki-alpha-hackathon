@@ -53,7 +53,7 @@ def main():
                  "/api/companies/DEMO-001/news/1/analyses",
                  "/api/companies/DEMO-001/analyses"):
         assert call(path, 503, data={})[0]["detail"]["code"] == "AI_DISABLED_IN_DEMO"
-    incoming = {"title": "Synthetic smoke news", "content": "Entirely invented parser smoke text",
+    incoming = {"title": "Synthetic smoke news", "content": "Синтетическая северная пекарня: полностью вымышленный текст",
                 "source_name": "synthetic-demo", "source_id": "SYNTH-SMOKE-INGEST",
                 "url": "HTTPS://EXAMPLE.INVALID/Parser?article=1&utm_source=smoke#fragment"}
     # Stable identifier keeps this smoke repeatable on an existing test volume.
@@ -63,7 +63,7 @@ def main():
     assert "CONTENT_MISMATCH" in duplicate["diagnostics"]
     call("/api/news", 403, data={"title": "Synthetic policy rejection", "content": "Synthetic text"})
     spec=call("/openapi.json")[0]
-    assert len(spec["paths"]) == 11 and spec['info']['version']=='1.15.0'
+    assert len(spec["paths"]) == 11 and spec['info']['version']=='1.17.0'
     assert {'200','201','409'} <= set(spec['paths']['/api/companies/{source_id}/news/{news_id}/analyses']['post']['responses'])
     print("PASS: demo readiness, Decimal profile, feed/card, pagination, isolation, errors, CORS, news ingestion/duplicate/policy, all AI routes blocked")
 

@@ -85,12 +85,12 @@ def test_compose_resolved_configuration(full):
         # Compose drops explicit false values from normalized JSON.
         assert not backend["volumes"][0].get("bind", {}).get("create_host_path", False)
     init = [v for v in db["volumes"] if v["target"].startswith("/docker-entrypoint-initdb.d/")]
-    assert len(init) == 6 and all(v["read_only"] for v in init)
+    assert len(init) == 7 and all(v["read_only"] for v in init)
     assert sorted(Path(v["source"]).name for v in init) == [
-        "002_pulse_features.sql", "003_integrity.sql", "004_news_external_identity.sql", "005_saved_news_analysis_jobs.sql", "frontend-demo.sql", "schema.sql"]
+        "002_pulse_features.sql", "003_integrity.sql", "004_news_external_identity.sql", "005_saved_news_analysis_jobs.sql", "006_news_company_matching.sql", "frontend-demo.sql", "schema.sql"]
     assert sorted(Path(v["target"]).name for v in init) == [
         "001_schema.sql", "002_pulse_features.sql", "003_integrity.sql",
-        "004_news_external_identity.sql", "005_saved_news_analysis_jobs.sql", "900_demo.sql"]
+        "004_news_external_identity.sql", "005_saved_news_analysis_jobs.sql", "006_news_company_matching.sql", "900_demo.sql"]
 
 
 def test_docker_context_is_allowlisted():

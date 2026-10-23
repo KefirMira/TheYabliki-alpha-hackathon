@@ -8,7 +8,7 @@ def test_all_eleven_operations_are_documented():
     operations = [(path, method, value) for path, methods in spec["paths"].items()
                   for method, value in methods.items() if method in {"get", "post"}]
     assert len(operations) == 11
-    assert spec["info"]["version"] == "1.15.0"
+    assert spec["info"]["version"] == "1.17.0"
     for path, method, operation in operations:
         assert operation["description"], (method, path)
         for status, response in operation["responses"].items():

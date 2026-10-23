@@ -4,6 +4,10 @@ INSERT INTO companies(source_id,name,industry,region,revenue,revenue_year,client
 VALUES ('DEMO-001','Демо: Северная пекарня','Пищевая промышленность','Тестовый регион','12345678.90',2025,'CLIENT'),
        ('DEMO-002','Демо: Мастерская','Производство','Тестовый регион','2000000.01',2025,'PROSPECT'),
        ('DEMO-003','Демо: Пустая история','Услуги','Тестовый регион',NULL,NULL,'PROSPECT');
+-- Invented, explicitly reviewed alias for local deterministic matching demonstrations.
+INSERT INTO company_verified_names(company_id,name,verified_by,provenance)
+SELECT id,'Синтетическая северная пекарня','synthetic-fixture-reviewer','Invented demo alias, not real registry data'
+FROM companies WHERE source_id='DEMO-001';
 DO $$
 DECLARE
  company_key BIGINT; news_key BIGINT; run_key BIGINT; insight_key BIGINT;

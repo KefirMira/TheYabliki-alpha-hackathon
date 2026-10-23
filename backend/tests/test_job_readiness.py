@@ -19,6 +19,8 @@ def test_ready_requires_valid_005_readonly(identity_dsn,monkeypatch,mutation):
     monkeypatch.setenv('AI_MODE','demo')
     async def scenario():
         async with job_database(identity_dsn) as (_,sessions,c,news):
+            from test_news_matching_integration import MIGRATION
+            await c.execute(MIGRATION.read_text(encoding='utf-8'))
             if mutation:await c.execute(mutation)
             from contextlib import asynccontextmanager
             @asynccontextmanager
