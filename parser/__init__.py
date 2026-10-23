@@ -1,3 +1,3 @@
 """Standalone synthetic RSS collector. No backend, database or LLM imports."""
 
-__version__ = "1.14.0"
+__version__ = "1.16.0"

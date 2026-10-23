@@ -89,7 +89,8 @@ def test_failures_are_bounded_and_sanitized(response,code):
 
 
 @pytest.mark.parametrize('ip',['127.0.0.1','10.0.0.1','192.168.0.1','172.16.0.1','169.254.169.254','0.0.0.0',
-    '::1','fe80::1','fc00::1','::ffff:8.8.8.8','224.0.0.1'])
+    '::1','fe80::1','fc00::1','::ffff:8.8.8.8','224.0.0.1',
+    '2002:0a00:0001::1','2001:0000:4136:e378:8000:63bf:3fff:fdd2'])
 def test_dns_private_and_mixed_answers_denied(ip):
     transport=Transport()
     with pytest.raises(SourceError):adapter(transport,['8.8.8.8',ip])(config(),{})
@@ -112,9 +113,11 @@ def test_redirects_cannot_escape_origin(location):
 
 
 def test_same_origin_redirect_and_rebinding_check():
-    transport=Transport(FakeResponse(302,headers={'Location':'/next'}),FakeResponse())
-    assert adapter(transport)(config(),{}).items
+    transport=Transport(FakeResponse(302,headers={'Location':'/next'}),FakeResponse(headers={'ETag':'"target"'}))
+    scan=adapter(transport)(config(),{'If-None-Match':'"original"'})
+    assert scan.items and scan.etag is None
     assert transport.calls[1][0]=='https://feed.example.invalid/next'
+    assert 'If-None-Match' not in transport.calls[1][2]
     calls=iter([['8.8.8.8'],['127.0.0.1']])
     transport=Transport(FakeResponse(302,headers={'Location':'/next'}))
     with pytest.raises(SourceError):HTTPRSS(transport=transport,resolver=lambda *args:next(calls))(config(),{})
@@ -134,3 +137,55 @@ def test_cp1251_and_conflicting_encoding():
     assert parse_http_rss(xml.encode('cp1251'),'application/rss+xml; charset=windows-1251','test')[0].payload.title=='Синтетика'
     with pytest.raises(SourceError,match='ENCODING_ERROR'):
         parse_http_rss(xml.encode('cp1251'),'text/xml; charset=utf-8','test')
+
+
+def test_real_loopback_socket_handles_connection_close_and_large_body():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    import time
+    from parser.http_source import DeadlineSocket
+    body=b'x'*40000
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-Length',str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        def log_message(self,*args):pass
+    server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+    worker=Thread(target=server.serve_forever,daemon=True)
+    worker.start()
+    connection=PinnedHTTP('fixture.example.invalid',server.server_port,'127.0.0.1',2)
+    try:
+        connection.connect()
+        connection.sock=DeadlineSocket(connection.sock,time.monotonic()+2)
+        connection.request('GET','/')
+        response=connection.getresponse()  # HTTP/1.0 closes connection, file must remain readable.
+        assert response.read()==body
+        response.close()
+    finally:
+        connection.close()
+        server.shutdown();server.server_close();worker.join(timeout=3)
+
+
+def test_offline_http_demo_uses_no_real_network(tmp_path,capsys):
+    from parser.offline_http_demo import main
+    assert main(['--once','--state-dir',str(tmp_path)])==0
+    assert main(['--once','--state-dir',str(tmp_path)])==0
+    import json
+    reports=[json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert reports[0]['queue_counts']=={'delivered':6}
+    assert reports[1]['counts']=={'already_delivered':6}
+
+
+def test_redirect_loop_is_bounded():
+    transport=Transport(*(FakeResponse(302,headers={'Location':'/again'}) for _ in range(3)))
+    with pytest.raises(SourceError,match='REDIRECT_DENIED'):adapter(transport)(config(),{})
+    assert len(transport.calls)==3
+
+
+def test_invalid_conditional_validator_is_not_sent():
+    transport=Transport()
+    with pytest.raises(SourceError,match='INVALID_VALIDATOR'):
+        adapter(transport)(config(),{'If-None-Match':'secret\r\nheader'})
+    assert not transport.calls

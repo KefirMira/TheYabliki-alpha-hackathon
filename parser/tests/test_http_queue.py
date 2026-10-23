@@ -39,6 +39,18 @@ def test_http_checkpoint_restart_304_and_duplicate_guid():
     assert rows(config,'sources')[0]['etag']=='"v1"'
 
 
+def test_http_reports_do_not_expose_untrusted_guid():
+    from test_http_source import XML
+    config,clock=configured(),Clock()
+    secret_guid='https://example.invalid/private?token=synthetic-secret'
+    body=XML.replace(b'SYNTH-HTTP-1',secret_guid.encode())
+    report=collect(config,clock,FakeBackend([Delivery('created',201,9)]),Transport(FakeResponse(body=body)))
+    assert secret_guid not in json.dumps(report)
+    assert report['items'][-1]['source_id'] is None
+    assert report['items'][-1]['identity_digest']
+    assert secret_guid in rows(config)[0]['payload']  # Exact identity still reaches backend.
+
+
 @pytest.mark.parametrize('status',[429,500,503])
 def test_http_error_backoff_retry_after_and_old_queue_delivery(status):
     config,clock=configured(),Clock()

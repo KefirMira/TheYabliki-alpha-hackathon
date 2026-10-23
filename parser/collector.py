@@ -1,5 +1,6 @@
 from collections import Counter
 import json
+import hashlib
 import os
 from pathlib import Path
 import tempfile
@@ -78,6 +79,11 @@ def collect_once(config, backend=None, *, clock=time.time, stop=None, wait=None,
                       "queue_status": row['status'], "attempts": row['attempts'], "next_attempt_at": row['next_attempt'],
                       "news_id": row['news_id'], "diagnostics": json.loads(row['diagnostics']), "http_status": row['http_status']}
             result.update(deliveries.get(row['id'], {}))
+            if config.source_mode=='http':
+                # RSS GUID may itself be a credential-bearing URL; keep it in the
+                # private outbox/payload, never in stdout or the public run report.
+                result['source_id']=None
+                result['identity_digest']=hashlib.sha256(row['item_key'].encode('utf-8')).hexdigest()
             results.append(result)
         failed = source_error is not None or any(row['status'] != 'delivered' for row in rows.values())
         return {"source_name": config.source_name, "counts": dict(Counter(item['status'] for item in results)),

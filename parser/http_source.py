@@ -35,7 +35,8 @@ def public_ip(value):
     except ValueError:
         raise SourceError('RSS_ADDRESS_DENIED') from None
     if (not ip.is_global or ip.is_multicast or ip.is_reserved
-            or getattr(ip, 'ipv4_mapped', None) is not None or ip.is_unspecified):
+            or getattr(ip, 'ipv4_mapped', None) is not None or ip.is_unspecified
+            or getattr(ip,'sixtofour',None) is not None or getattr(ip,'teredo',None) is not None):
         raise SourceError('RSS_ADDRESS_DENIED')
     return str(ip)
 
@@ -110,6 +111,7 @@ class DeadlineSocket:
     """Bound slow headers/body too; http.client reads through makefile()."""
     def __init__(self,sock,deadline):
         self.sock,self.deadline=sock,deadline
+        self.readers,self.closed=0,False
 
     def remaining(self):
         value=self.deadline-time.monotonic()
@@ -122,21 +124,30 @@ class DeadlineSocket:
 
     def makefile(self,mode):
         owner=self
+        owner.readers+=1
         class Reader(io.RawIOBase):
             def readable(self):return True
             def readinto(self,buffer):
                 owner.remaining()
                 return owner.sock.recv_into(buffer)
+            def close(self):
+                if not self.closed:
+                    owner.readers-=1
+                    if owner.closed and owner.readers==0:owner.sock.close()
+                super().close()
         return io.BufferedReader(Reader())
 
     def settimeout(self,value):self.sock.settimeout(value)
-    def close(self):self.sock.close()
+    def close(self):
+        self.closed=True
+        if self.readers==0:self.sock.close()
 
 
 @contextmanager
 def exchange(url,ip,headers,timeout):
     p,host,port=parse_url(url)
     connection=(PinnedHTTPS if p.scheme=='https' else PinnedHTTP)(host,port,ip,timeout)
+    response=None
     try:
         deadline=time.monotonic()+timeout
         connection.connect()
@@ -146,6 +157,7 @@ def exchange(url,ip,headers,timeout):
         response=connection.getresponse()
         yield response,connection
     finally:
+        if response is not None:response.close()
         connection.close()
 
 
@@ -240,6 +252,9 @@ class HTTPRSS:
                         if not location or hop==config.max_redirects:
                             raise SourceError('RSS_REDIRECT_DENIED')
                         url=urljoin(url,location)
+                        # Validators belong to a resource, not just its origin.
+                        headers.pop('If-None-Match',None)
+                        headers.pop('If-Modified-Since',None)
                         continue
                     if status not in (200,304):
                         raise SourceError('RSS_HTTP_'+str(status),retryable=status==429 or 500<=status<=599,
@@ -247,7 +262,8 @@ class HTTPRSS:
                     etag=validator(response.getheader('ETag'))
                     modified=validator(response.getheader('Last-Modified'))
                     if status==304:
-                        if not conditional_headers:raise SourceError('RSS_UNSOLICITED_304')
+                        if not any(name in headers for name in ('If-None-Match','If-Modified-Since')):
+                            raise SourceError('RSS_UNSOLICITED_304')
                         return Scan(status=304,etag=etag,last_modified=modified)
                     if response.getheader('Content-Encoding','identity').lower()!='identity':
                         raise SourceError('RSS_ENCODING_UNSUPPORTED')
@@ -266,7 +282,8 @@ class HTTPRSS:
                         if not chunk:break
                         data.extend(chunk)
                         if len(data)>config.max_response_bytes:raise SourceError('RSS_RESPONSE_TOO_LARGE')
-                    return Scan(items=parse_http_rss(bytes(data),content_type,config.source_name),etag=etag,last_modified=modified)
+                    return Scan(items=parse_http_rss(bytes(data),content_type,config.source_name),
+                        etag=etag if hop==0 else None,last_modified=modified if hop==0 else None)
         except SourceError:raise
         except TimeoutError:raise SourceError('RSS_TIMEOUT',retryable=True) from None
         except (OSError,http.client.HTTPException):raise SourceError('RSS_NETWORK_ERROR',retryable=True) from None
