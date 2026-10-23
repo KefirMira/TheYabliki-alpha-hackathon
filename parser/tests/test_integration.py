@@ -65,8 +65,8 @@ def test_real_http_repeat_delivery_and_receipt_report(tmp_path):
         first = collect_once(config)
         second = collect_once(config)
         assert first["counts"] == {"created": 5, "skipped": 5}
-        assert second["counts"] == {"duplicate": 5, "skipped": 5}
-        assert len(requests) == 10 and len(records) == 5
+        assert second["counts"] == {"already_delivered": 5, "skipped": 5}
+        assert len(requests) == 5 and len(records) == 5
         assert [item.get("news_id") for item in first["items"]] == [item.get("news_id") for item in second["items"]]
         assert requests[0]["published_at"] == "2026-01-01T09:00:00Z"
         assert requests[2]["published_at"] is None
@@ -82,7 +82,7 @@ def test_http_failure_does_not_stop_the_run(code, status):
     with stub_backend(code) as (url, requests, _):
         report = collect_once(Config.from_env({"PARSER_BACKEND_URL": url}))
     assert len(requests) == 5 and report["counts"] == {status: 1, "created": 4, "skipped": 5}
-    assert report["failed"] and report["items"][0]["http_status"] == code
+    assert report["failed"] and next(item for item in report['items'] if item.get('queue_id'))["http_status"] == code
 
 
 def test_changed_text_duplicate_is_recorded(tmp_path):
@@ -92,8 +92,21 @@ def test_changed_text_duplicate_is_recorded(tmp_path):
         changed = tmp_path / "changed.xml"
         changed.write_text(config.rss_path.read_text().replace("workshop</strong>", "modified workshop</strong>"), encoding="utf-8")
         report = collect_once(Config.from_env({"PARSER_BACKEND_URL": url, "PARSER_RSS_PATH": str(changed)}))
-    assert report["items"][0]["diagnostics"] == ["CONTENT_MISMATCH"]
+    assert 'LOCAL_PAYLOAD_CHANGED' in next(item for item in report['items'] if item.get('queue_id'))['issues']
     assert len(records) == 5
+
+
+def test_real_http_backend_recovers_and_queue_restarts():
+    from parser.tests.test_state_delivery import Clock
+    clock = Clock()
+    with stub_backend(503) as (url, requests, records):
+        config = Config.from_env({'PARSER_BACKEND_URL': url})
+        first = collect_once(config, clock=clock, wait=clock.wait)
+        assert first['queue_counts'] == {'retry': 1, 'delivered': 4}
+        clock.now += 100
+        recovered = collect_once(config, clock=clock, wait=clock.wait)
+        assert recovered['queue_counts'] == {'delivered': 5}
+        assert len(requests) == 6 and len(records) == 5
 
 
 @pytest.mark.parametrize("first_status,exit_code", [(None, 0), (503, 1)])
@@ -112,12 +125,12 @@ def test_cli_invalid_input_is_sanitized(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("PARSER_REPORT_PATH", str(tmp_path / "report.json"))
     assert main(["--once"]) == 2
     assert json.loads(capsys.readouterr().err)["error_type"] == "FileNotFoundError"
-    assert not (tmp_path / "report.json").exists()
+    assert json.loads((tmp_path / 'report.json').read_text())['source_error'] == 'FileNotFoundError'
 
 
-def test_cli_has_no_poll_mode():
+def test_cli_requires_exactly_one_mode():
     with pytest.raises(SystemExit) as error:
-        main(["--poll"])
+        main(["--poll", "--once"])
     assert error.value.code == 2
 
 
@@ -129,6 +142,10 @@ def test_python_module_cli_with_local_backend(tmp_path):
                "PARSER_REPORT_PATH": str(tmp_path / "module-report.json"), "PARSER_HTTP_TIMEOUT": "5"}
         result = subprocess.run([sys.executable, "-m", "parser", "--once"], cwd=root, env=env,
                                 capture_output=True, text=True, encoding="utf-8", timeout=20)
+        restarted = subprocess.run([sys.executable, "-m", "parser", "--once"], cwd=root, env=env,
+                                   capture_output=True, text=True, encoding="utf-8", timeout=20)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["counts"] == {"created": 5, "skipped": 5}
     assert len(requests) == 5 and all("content" in payload for payload in requests)
+    assert restarted.returncode == 0, restarted.stderr
+    assert json.loads(restarted.stdout)['counts'] == {'already_delivered': 5, 'skipped': 5}

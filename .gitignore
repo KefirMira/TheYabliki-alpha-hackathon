@@ -29,3 +29,11 @@ database/seed.sql
 *.dump
 *.backup
 pgdata/
+
+# Private parser state (including SQLite journal/WAL files)
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-*
+*.sqlite3-*
+*.db-*

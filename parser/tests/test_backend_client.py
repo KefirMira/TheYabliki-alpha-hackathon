@@ -12,7 +12,7 @@ def payload():
 
 
 @pytest.mark.parametrize("code,status", [(201, "created"), (200, "duplicate"), (409, "conflict"),
-    (422, "invalid_data"), (503, "unavailable"), (403, "forbidden"), (500, "http_error"), (307, "http_error")])
+    (422, "invalid_data"), (503, "unavailable"), (403, "forbidden"), (500, "temporary_error"), (307, "http_error")])
 def test_http_statuses_and_no_retry_or_redirect(code, status):
     calls = []
     def handler(request):

@@ -1,6 +1,7 @@
 """Process environment only: never read backend/.env or inherit backend settings."""
 from dataclasses import dataclass
 import os
+import math
 from pathlib import Path
 import re
 from urllib.parse import urlsplit
@@ -17,6 +18,13 @@ class Config:
     backend_url: str
     source_name: str
     timeout: float
+    state_path: Path
+    max_attempts: int
+    backoff_base: float
+    backoff_cap: float
+    poll_interval: float
+    request_interval: float
+    lease_seconds: float
 
     @classmethod
     def from_env(cls, env=None):
@@ -45,4 +53,21 @@ class Config:
         timeout = float(env.get("PARSER_HTTP_TIMEOUT", "10"))
         if not 0 < timeout <= 60:
             raise ValueError("PARSER_HTTP_TIMEOUT must be in (0, 60]")
-        return cls(rss, report, base.rstrip("/"), source, timeout)
+        state = path("PARSER_STATE_PATH", "state/parser.sqlite3")
+        if state in {rss, report} or state.suffix.lower() not in {".sqlite3", ".sqlite", ".db"}:
+            raise ValueError("PARSER_STATE_PATH must be a separate SQLite file")
+        def number(key, default, minimum, maximum):
+            value = float(env.get(key, str(default)))
+            if not math.isfinite(value) or not minimum <= value <= maximum:
+                raise ValueError(f"{key} must be in [{minimum}, {maximum}]")
+            return value
+        attempts = int(env.get("PARSER_MAX_ATTEMPTS", "5"))
+        if not 1 <= attempts <= 20:
+            raise ValueError("PARSER_MAX_ATTEMPTS must be in [1, 20]")
+        delay = number("PARSER_BACKOFF_BASE", 2, .01, 3600)
+        cap = number("PARSER_BACKOFF_CAP", 300, delay, 86400)
+        poll = number("PARSER_POLL_INTERVAL", 30, .01, 86400)
+        interval = number("PARSER_REQUEST_INTERVAL", .2, .001, 60)
+        lease = number("PARSER_LEASE_SECONDS", 180, timeout + interval + 10, 86400)
+        return cls(rss, report, base.rstrip("/"), source, timeout, state,
+                   attempts, delay, cap, poll, interval, lease)
