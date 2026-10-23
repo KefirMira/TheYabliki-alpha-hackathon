@@ -1,11 +1,22 @@
+param(
+    [string]$ComposeOverride
+)
+
 $ErrorActionPreference = 'Stop'
 $compose = Join-Path $PSScriptRoot '../compose.test.yml'
+$composeFiles = @('-f', $compose)
+if ($ComposeOverride) {
+    if (-not (Test-Path -LiteralPath $ComposeOverride -PathType Leaf)) {
+        throw "Compose override not found: $ComposeOverride"
+    }
+    $composeFiles += @('-f', (Resolve-Path -LiteralPath $ComposeOverride).Path)
+}
 # A unique Compose project isolates both container names and the named volume.
 $project = 'theyabliki-db-check-' + [guid]::NewGuid().ToString('N').Substring(0,12)
 $generatedPassword = -not $env:DB_TEST_PASSWORD
 if ($generatedPassword) { $env:DB_TEST_PASSWORD = [guid]::NewGuid().ToString('N') }
 function Compose {
-    & docker compose -p $project -f $compose @args
+    & docker compose -p $project @composeFiles @args
     if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed: $($args -join ' ')" }
 }
 function SqlFile([string]$file) {

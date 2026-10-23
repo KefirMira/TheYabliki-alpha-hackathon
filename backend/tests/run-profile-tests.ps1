@@ -1,5 +1,6 @@
 param(
-    [string]$DatabaseRoot
+    [string]$DatabaseRoot,
+    [string]$ComposeOverride
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,6 +18,13 @@ foreach ($file in @('compose.test.yml','schema.sql','migrations/002_pulse_featur
     }
 }
 $compose = Join-Path $DatabaseRoot 'compose.test.yml'
+$composeFiles = @('-f', $compose)
+if ($ComposeOverride) {
+    if (-not (Test-Path -LiteralPath $ComposeOverride -PathType Leaf)) {
+        throw "Compose override not found: $ComposeOverride"
+    }
+    $composeFiles += @('-f', (Resolve-Path -LiteralPath $ComposeOverride).Path)
+}
 $project = 'theyabliki-profile-' + [guid]::NewGuid().ToString('N').Substring(0,12)
 $previous = @{}
 foreach ($key in @('DB_TEST_PASSWORD','DB_TEST_PORT','PROFILE_TEST_DATABASE_URL','NEWS_IDENTITY_TEST_DATABASE_URL','NEWS_IDENTITY_DATABASE_ROOT','PYTHON_DOTENV_DISABLED')) {
@@ -26,7 +34,7 @@ $env:DB_TEST_PASSWORD = [guid]::NewGuid().ToString('N')
 if (-not $env:DB_TEST_PORT) { $env:DB_TEST_PORT = '55435' }
 $env:PYTHON_DOTENV_DISABLED = '1'
 function Compose {
-    & docker compose -p $project -f $compose @args
+    & docker compose -p $project @composeFiles @args
     if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed: $($args -join ' ')" }
 }
 function Sql([string]$file) {
