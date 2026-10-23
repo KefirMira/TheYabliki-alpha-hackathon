@@ -23,6 +23,14 @@ class RunStatusUncertain(AnalysisFailure):
     pass
 
 
+class NewsNotFound(Exception):
+    pass
+
+
+class NewsNotAnalyzable(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class SavedAnalysis:
     run_id: int
@@ -53,6 +61,24 @@ class CompanyAnalysisService:
                     raise CompanyNotFound(source_id)
                 news_id = await NewsRepository(session).create_manual(news, title)
                 run_id = await AnalysisRunRepository(session).start(record.id)
+        return await self._execute(source_id, news, record, news_id, run_id)
+
+    async def analyze_saved(self, source_id: str, news_id: int) -> SavedAnalysis:
+        async with self.sessions() as session:
+            async with session.begin():
+                record = await CompanyRepository(session).get_by_source_id(source_id)
+                if record is None:
+                    raise CompanyNotFound(source_id)
+                stored = await NewsRepository(session).get_by_id(news_id)
+                if stored is None:
+                    raise NewsNotFound(news_id)
+                news = stored["content"]
+                if not isinstance(news, str) or not news.strip() or len(news) > 100_000:
+                    raise NewsNotAnalyzable(news_id)
+                run_id = await AnalysisRunRepository(session).start(record.id)
+        return await self._execute(source_id, news, record, news_id, run_id)
+
+    async def _execute(self, source_id, news, record, news_id, run_id) -> SavedAnalysis:
         # No session or transaction survives this boundary.
         phase = "AI_ANALYSIS_FAILED"
         try:

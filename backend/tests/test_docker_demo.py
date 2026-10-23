@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize("path", ["/api/analyze", "/api/analyze-rag", "/api/analyze-company",
+                                  "/api/companies/DEMO-001/news/1/analyses",
                                   "/api/companies/DEMO-001/analyses"])
 def test_demo_blocks_ai_before_body_or_database(monkeypatch, path):
     monkeypatch.setenv("AI_MODE", "demo")

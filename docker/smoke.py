@@ -50,6 +50,7 @@ def main():
         "Origin": "https://untrusted.example.invalid", "Access-Control-Request-Method": "GET"}, method="OPTIONS")
     assert "Access-Control-Allow-Origin" not in denied
     for path in ("/api/analyze", "/api/analyze-rag", "/api/analyze-company",
+                 "/api/companies/DEMO-001/news/1/analyses",
                  "/api/companies/DEMO-001/analyses"):
         assert call(path, 503, data={})[0]["detail"]["code"] == "AI_DISABLED_IN_DEMO"
     incoming = {"title": "Synthetic smoke news", "content": "Entirely invented parser smoke text",
@@ -61,7 +62,7 @@ def main():
     assert duplicate["news_id"] == existing["news_id"] and duplicate["duplicate"]
     assert "CONTENT_MISMATCH" in duplicate["diagnostics"]
     call("/api/news", 403, data={"title": "Synthetic policy rejection", "content": "Synthetic text"})
-    assert len(call("/openapi.json")[0]["paths"]) == 10
+    assert len(call("/openapi.json")[0]["paths"]) == 11
     print("PASS: demo readiness, Decimal profile, feed/card, pagination, isolation, errors, CORS, news ingestion/duplicate/policy, all AI routes blocked")
 
 
