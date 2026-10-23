@@ -24,11 +24,14 @@ def main():
             return (json.loads(body) if body and body.startswith(b"{") else {}, response.headers)
 
     assert call("/health")[0] == {"status": "ok"}
+    _, docs_headers = call("/docs")
+    assert 'text/html' in docs_headers['Content-Type']
     ready = call("/ready")[0]
     assert ready["status"] == "ready" and ready["checks"]["database"]
     assert not ready["checks"]["llm_config"], "Refusing POST tests when LLM configuration is present"
     assert call("/api/companies/DEMO-001")[0]["revenue"] == "12345678.90"
     assert call("/api/companies/DEMO-002")[0]["name"]
+    assert call("/api/companies/DEMO-003")[0]["name"]
     assert call("/api/companies/DEMO-003/insights")[0]["items"] == []
     feed = call("/api/companies/DEMO-001/insights?limit=1")[0]
     assert len(feed["items"]) == 1 and feed["next_cursor"]
@@ -65,7 +68,7 @@ def main():
     spec=call("/openapi.json")[0]
     assert len(spec["paths"]) == 11 and spec['info']['version']=='1.17.0'
     assert {'200','201','409'} <= set(spec['paths']['/api/companies/{source_id}/news/{news_id}/analyses']['post']['responses'])
-    print("PASS: demo readiness, Decimal profile, feed/card, pagination, isolation, errors, CORS, news ingestion/duplicate/policy, all AI routes blocked")
+    print("PASS: Swagger, demo readiness, all three profiles, Decimal, feed/card, pagination, isolation, errors, CORS, news ingestion/duplicate/policy, all AI routes blocked")
 
 
 if __name__ == "__main__":
