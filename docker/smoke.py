@@ -19,7 +19,7 @@ def main():
         except HTTPError as error:
             response = error
         with response:
-            assert response.status == expected, (path, response.status, response.read().decode())
+            assert response.status in (expected if isinstance(expected, tuple) else (expected,)), (path, response.status, response.read().decode())
             body = response.read()
             return (json.loads(body) if body and body.startswith(b"{") else {}, response.headers)
 
@@ -52,8 +52,17 @@ def main():
     for path in ("/api/analyze", "/api/analyze-rag", "/api/analyze-company",
                  "/api/companies/DEMO-001/analyses"):
         assert call(path, 503, data={})[0]["detail"]["code"] == "AI_DISABLED_IN_DEMO"
-    assert len(call("/openapi.json")[0]["paths"]) == 9
-    print("PASS: demo readiness, Decimal profile, feed/card, pagination, isolation, errors, CORS, all AI routes blocked")
+    incoming = {"title": "Synthetic smoke news", "content": "Entirely invented parser smoke text",
+                "source_name": "synthetic-demo", "source_id": "SYNTH-SMOKE-INGEST",
+                "url": "HTTPS://EXAMPLE.INVALID/Parser?article=1&utm_source=smoke#fragment"}
+    # Stable identifier keeps this smoke repeatable on an existing test volume.
+    existing = call("/api/news", (200, 201), data=incoming)[0]
+    duplicate = call("/api/news", 200, data={**incoming, "content": "Changed invented text"})[0]
+    assert duplicate["news_id"] == existing["news_id"] and duplicate["duplicate"]
+    assert "CONTENT_MISMATCH" in duplicate["diagnostics"]
+    call("/api/news", 403, data={"title": "Synthetic policy rejection", "content": "Synthetic text"})
+    assert len(call("/openapi.json")[0]["paths"]) == 10
+    print("PASS: demo readiness, Decimal profile, feed/card, pagination, isolation, errors, CORS, news ingestion/duplicate/policy, all AI routes blocked")
 
 
 if __name__ == "__main__":

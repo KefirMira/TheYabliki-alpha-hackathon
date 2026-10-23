@@ -14,6 +14,7 @@ from api.companies import router as companies_router
 from api.company_analyses import router as company_analyses_router
 from api.insights import router as insights_router
 from api.readiness import router as readiness_router
+from api.news import router as news_router
 from db.session import database_lifespan
 from services.analysis_gateway import analyze_for_company, analyze_with_rag
 from api.runtime import require_ai_enabled
@@ -37,6 +38,7 @@ app.include_router(companies_router)
 app.include_router(company_analyses_router)
 app.include_router(insights_router)
 app.include_router(readiness_router)
+app.include_router(news_router)
 
 
 # -----------------------------

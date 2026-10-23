@@ -66,6 +66,7 @@ docker compose -p pulse-frontend-demo -f compose.frontend.yml --profile checks r
 ```
 
 Smoke проверяет профили и Decimal, ленту/карточку, пагинацию, пустую историю,
+приём синтетической новости через POST /api/news, дубликат и demo-политику,
 изоляцию компаний, 404/422, CORS, /ready, OpenAPI и блокировку всех четырёх POST AI.
 При full или непустой LLM-конфигурации он отказывается выполнять POST-проверки.
 `--rm` удаляет только создаваемый одноразовый smoke-контейнер.
