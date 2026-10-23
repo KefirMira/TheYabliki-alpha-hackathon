@@ -8,6 +8,14 @@ ALGORITHM_VERSION = 'exact-mentions-v1'
 LEGAL_FORMS = {'ооо', 'ао', 'пао', 'оао', 'зао', 'ип'}
 COMMON_NAMES = {'мир', 'рост', 'вектор', 'альфа', 'банк', 'центр', 'прогресс',
                 'сервис', 'инвест', 'группа', 'технологии', 'развитие', 'компания'}
+LONG_FORMS = {
+    ('общество', 'с', 'ограниченной', 'ответственностью'): 'ооо',
+    ('публичное', 'акционерное', 'общество'): 'пао',
+    ('открытое', 'акционерное', 'общество'): 'оао',
+    ('закрытое', 'акционерное', 'общество'): 'зао',
+    ('акционерное', 'общество'): 'ао',
+    ('индивидуальный', 'предприниматель'): 'ип',
+}
 
 
 def normalized(value):
@@ -21,9 +29,19 @@ def tokens(value):
 
 def name_tokens(value):
     parts = [t[0] for t in tokens(value)]
+    for prefix in LONG_FORMS:
+        if tuple(parts[:len(prefix)]) == prefix:
+            return tuple(parts[len(prefix):])
     if parts and parts[0] in LEGAL_FORMS:
         parts = parts[1:]
     return tuple(parts)
+
+
+def legal_form(value):
+    parts = tuple(t[0] for t in tokens(value))
+    if parts and parts[0] in LEGAL_FORMS:
+        return parts[0]
+    return next((code for prefix, code in LONG_FORMS.items() if parts[:len(prefix)] == prefix), None)
 
 
 def digest(value):
@@ -54,6 +72,12 @@ def match_news(news, companies):
             key = name_tokens(alias['name'])
             if key:
                 names.setdefault(key, []).append((company['id'], alias))
+    trie = {}
+    for key in names:
+        node = trie
+        for word in key:
+            node = node.setdefault(word, {})
+        node[None] = key
     findings = {}
     ambiguous = False
 
@@ -70,17 +94,34 @@ def match_news(news, companies):
 
     for field in ('title', 'content'):
         text = news.get(field) or ''
-        for (kind, value), ids in sorted(identifiers.items()):
-            for occurrence in re.finditer(r'(?<!\w)' + re.escape(value) + r'(?!\w)', text):
+        for occurrence in re.finditer(r'(?<!\w)[0-9]{10,15}(?!\w)', text):
+            value = occurrence.group()
+            for kind in ('inn', 'ogrn'):
+                ids = identifiers.get((kind, value))
+                if not ids:
+                    continue
                 record(ids, kind.upper(), field, *occurrence.span(), value,
                        'EXACT_UNIQUE' if len(set(ids)) == 1 else 'NON_UNIQUE_IDENTIFIER')
         parts = tokens(text)
         words = tuple(p[0] for p in parts)
+        occurrences = []
         for start in range(len(words)):
-            possible = [key for key in names if words[start:start + len(key)] == key]
-            if not possible:
+            node = trie
+            end = start
+            while end < len(words) and words[end] in node:
+                node = node[words[end]]
+                end += 1
+                if None in node:
+                    occurrences.append((start, end, node[None]))
+        # Contained names (including suffixes) are not independent mentions.
+        covered_until = -1
+        for start, end, key in sorted(occurrences, key=lambda item: (item[0], -item[1])):
+            if end <= covered_until:
                 continue
-            key = max(possible, key=len)
+            if any(not re.fullmatch(r'''[\s"'«»“”„‟\-‑–—]+''', text[parts[i][2]:parts[i + 1][1]])
+                   for i in range(start, end - 1)):
+                continue
+            covered_until = end
             matches = names[key]
             ids = sorted({cid for cid, _ in matches})
             distinctive = (sum(map(len, key)) >= 10 and
@@ -90,8 +131,11 @@ def match_news(news, companies):
                       'EXACT_UNIQUE' if distinctive else 'WEAK_NAME')
             # An explicitly different legal form cannot establish an exact name.
             preceding = words[start - 1] if start else None
-            forms = {tokens(alias['name'])[0][0] for _, alias in matches
-                     if tokens(alias['name'])[0][0] in LEGAL_FORMS}
+            for prefix, code in LONG_FORMS.items():
+                if start >= len(prefix) and words[start - len(prefix):start] == prefix:
+                    preceding = code
+                    break
+            forms = {legal_form(alias['name']) for _, alias in matches} - {None}
             if preceding in LEGAL_FORMS and forms and preceding not in forms:
                 reason = 'LEGAL_FORM_MISMATCH'
             record(ids, 'NAME', field, parts[start][1], parts[start + len(key) - 1][2],

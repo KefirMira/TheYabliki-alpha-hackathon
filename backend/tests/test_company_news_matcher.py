@@ -70,3 +70,24 @@ def test_placeholder_and_repeatability():
     assert match_news({'title': 'SYNTH-1'}, [c])['status'] == 'NO_MATCH'
     news = {'title': '1234567890'}
     assert match_news(news, [c]) == match_news(news, [c])
+
+
+def test_nested_short_name_and_full_legal_form():
+    c = company(name='Общество с ограниченной ответственностью «Синтетический маяк»')
+    short = company(2, name='Маяк')
+    assert match_news({'title': 'ООО «Синтетический маяк»'}, [c, short])['matched_company_ids'] == [1]
+
+
+def test_multiple_distinct_companies_are_independent():
+    second = company(2, name='Синтетическая обсерватория')
+    second['inn'] = '0123456789'
+    second['ogrn'] = None
+    assert match_news({'title': 'ИНН 1234567890 и 0123456789'}, [company(), second])['matched_company_ids'] == [1, 2]
+
+
+def test_sentence_boundary_is_not_a_name():
+    assert match_news({'title': 'Синтетический. Маяк'}, [company()])['status'] == 'NO_MATCH'
+
+
+def test_full_legal_form_conflict_is_ambiguous():
+    assert match_news({'title': 'Акционерное общество «Синтетический маяк»'}, [company()])['status'] == 'AMBIGUOUS'
