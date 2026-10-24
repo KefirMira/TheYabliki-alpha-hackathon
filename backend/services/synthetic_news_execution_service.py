@@ -15,6 +15,7 @@ from services.company_analysis_service import (
 from services.company_profile_service import CompanyNotFound
 from services.personalization_service import analyze_for_company_with_evidence
 from services.protected_ai import protected_call
+from services.financial_review_service import review_financial_analysis
 from repositories.news_analysis_job_repository import AnalysisConflict
 from repositories.evidence_repository import EvidenceRepository
 
@@ -24,6 +25,7 @@ EXECUTION_PLAN = (
     ('preparation', 'Existing read-only local preparation', ['saved_news', 'company_context']),
     ('fake_llm', 'One local fake SDK call, no provider', ['prepared_input']),
     ('validate_result', 'Existing JSON/evidence contract plus exact provenance', ['fake_response', 'prepared_evidence']),
+    ('financial_review', 'Deterministic financial review, never a truth certificate', ['analysis', 'company_context', 'evidence']),
     ('persist', 'Existing fenced atomic insight/evidence/payload/COMPLETED commit', ['validated_bundle', 'claim_token']),
 )
 
@@ -123,13 +125,24 @@ class SyntheticNewsExecutionService:
                 if ([item.model_dump() for item in bundle.evidence] != expected
                         or bundle.analysis.company_id != source_id or bundle.analysis.news != news):
                     raise LocalExecutionStopped('LOCAL_RESULT_PROVENANCE_MISMATCH')
-                bundle.analysis.validation = ValidationResult(passed=False, warnings=[
+                finish(bundle.model_dump(mode='json'), {'schema_valid': True, 'exact_evidence': True})
+                start(4, {'analysis_sha256': digest(bundle.analysis.model_dump(mode='json')),
+                          'context_sha256': digest(payload['company_source_assertions']),
+                          'evidence_sha256': digest(expected)})
+                review = review_financial_analysis(bundle.analysis, payload['company_source_assertions'], expected, news)
+                report.financial_review = review
+                if review.blocking:
+                    raise LocalExecutionStopped('FINANCIAL_REVIEW_BLOCKED')
+                bundle.financial_review = review
+                bundle.analysis.validation = ValidationResult(passed=False, warnings=list(dict.fromkeys([
                     *bundle.analysis.validation.warnings,
-                    'SYNTHETIC_FAKE_ANALYSIS_NOT_FOR_DECISIONS', 'FACTUAL_ACCURACY_NOT_ASSESSED'])
+                    'SYNTHETIC_FAKE_ANALYSIS_NOT_FOR_DECISIONS', 'FACTUAL_ACCURACY_NOT_ASSESSED',
+                    'FINANCIAL_CORRECTNESS_NOT_ESTABLISHED',
+                    *[finding.code for finding in review.findings]])))
                 bundle.prompt_version = 'local-orchestration-v1'
                 finish(bundle.model_dump(mode='json'), {'schema_valid': True, 'exact_evidence': True,
                     'factual_accuracy': 'NOT_ASSESSED', 'human_review_required': True})
-                start(4, {'validated_bundle_sha256': digest(bundle.model_dump(mode='json'))})
+                start(5, {'validated_bundle_sha256': digest(bundle.model_dump(mode='json'))})
                 return bundle
             except Exception as error:
                 safe_error = error.code if isinstance(error, LocalExecutionStopped) else 'LOCAL_EXECUTION_FAILED'

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from schemas.analysis_preparation import AnalysisPreparation, PreparationStep
 from schemas.company_analysis_api import CreatedCompanyAnalysis
+from schemas.financial_review import FinancialReview
 
 
 class SyntheticExecution(BaseModel):
@@ -12,6 +13,7 @@ class SyntheticExecution(BaseModel):
     status: Literal['COMPLETED', 'REUSED', 'CONFLICT', 'FAILED', 'UNCERTAIN', 'REJECTED']
     steps: list[PreparationStep]
     preparation: AnalysisPreparation | None = None
+    financial_review: FinancialReview | None = None
     result: CreatedCompanyAnalysis | None = None
     run_id: int | None = None
     error_code: str | None = None

@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field, model_validator
 
 from schemas.analysis import CompanyAnalysisResponse
+from schemas.financial_review import FinancialReview
 
 
 class RetrievedEvidence(BaseModel):
@@ -20,6 +21,7 @@ class PersistableAnalysis(BaseModel):
     evidence: list[RetrievedEvidence] = Field(min_length=1)
     model_name: str | None = None
     prompt_version: str = "company-json-v1"
+    financial_review: FinancialReview | None = None
 
     @model_validator(mode="after")
     def check_sources(self):

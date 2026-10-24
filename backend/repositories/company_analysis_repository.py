@@ -9,12 +9,16 @@ class CompanyAnalysisRepository:
 
     async def create(self, run_id, company_id, news_id, bundle) -> int:
         analysis = bundle.analysis
+        validation = analysis.validation.model_dump(mode="json")
+        if bundle.financial_review is not None:
+            # Existing JSONB field, in the same transaction as insight/evidence/status.
+            validation['financial_review'] = bundle.financial_review.model_dump(mode='json')
         result = await self.session.execute(insert(company_news_analyses).values(
             analysis_run_id=run_id, company_id=company_id, news_id=news_id,
             relevance_level=analysis.relevance, impact_summary=analysis.summary,
             risks=analysis.risks, opportunities=analysis.opportunities,
             recommendations=analysis.recommendations,
-            validation=analysis.validation.model_dump(mode="json"),
+            validation=validation,
             source_snapshot=[item.model_dump(mode="json", exclude={"text"}) for item in bundle.evidence],
         ).returning(company_news_analyses.c.id))
         return result.scalar_one()

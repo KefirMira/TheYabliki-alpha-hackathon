@@ -1,5 +1,9 @@
 # Синтетическое выполнение через существующие jobs — v1.21.1
 
+Следующий локальный этап [финансовой самопроверки v1.21.2](FINANCIAL_SELF_REVIEW.md)
+добавляет структурированные findings перед атомарным сохранением. Он не
+подтверждает финансовую достоверность и не меняет production endpoint.
+
 Внутренний `SyntheticNewsExecutionService.analyze_saved(source_id, news_id)`
 проверяет проводку подготовки → fake SDK → validation → persistence. Он не
 зарегистрирован в FastAPI, не вызывается по расписанию и не является способом
@@ -75,8 +79,9 @@ API-ключа, provider URL, retry, fallback или выбора модели. 
 ## Отчёт и будущее долговременное хранение
 
 Возвращается `SyntheticExecution`: status, run_id, стандартный сохранённый response,
-preparation report и пять execution steps с хешами, статусами и сводками:
-claim, preparation, fake_llm, validate_result, persist. Все счётчики и trace
+preparation report и execution steps с хешами, статусами и сводками:
+claim, preparation, fake_llm, validate_result, persist; начиная с v1.21.2 перед
+persist добавлен financial_review (шесть шагов). Все счётчики и trace
 хранятся отдельно для каждого вызова, без общего изменяемого журнала.
 При REUSED подготовка/SDK пропущены. При конфликте или ошибке отчёт содержит
 безопасный код, а не исходное исключение, DSN, заголовки или содержимое ключа.
