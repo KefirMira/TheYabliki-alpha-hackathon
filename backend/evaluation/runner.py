@@ -80,6 +80,9 @@ def technical_checks(raw, evidence, case, finish):
     try:
         parsed = parse_structured_analysis(raw)
         result['schema_valid'] = True
+        if case.get('evaluation_prompt_variant') == 'comparison-compact-v1':
+            from evaluation.compact import output_checks
+            result['compact_output'] = output_checks(parsed,raw)
         analysis_text = '\n'.join([parsed.summary, *parsed.risks, *parsed.opportunities, *parsed.recommendations])
         result['heuristic_warnings'] = validate_analysis(
             analysis_text,
@@ -116,9 +119,9 @@ def write_json(path, data, secret=''):
     path.chmod(0o600)
 
 
-def make_plan(cases, chunks, limits, *, profile_model=CompanyProfile):
+def make_plan(cases, chunks, limits, *, profile_model=CompanyProfile, question_suffix=''):
     quota = organizer_quota(limits)
-    prepared = [(case, prepare(case, chunks, profile_model=profile_model)) for case in cases]
+    prepared = [(case, prepare(case, chunks, profile_model=profile_model, question_suffix=question_suffix)) for case in cases]
     total = Decimal(0)
     requests = 0
     for _, item in prepared:

@@ -121,10 +121,19 @@ async def complete_with_client(client, config, messages, *, max_tokens, timeout)
     if not response.choices:
         raise ValueError('NO_MODEL_CHOICES')
     usage = response.usage
-    return {'raw': response.choices[0].message.content or '',
+    details = getattr(usage, 'completion_tokens_details', None) if usage is not None else None
+    reasoning = details.get('reasoning_tokens') if isinstance(details, dict) else getattr(details, 'reasoning_tokens', None)
+    reported = isinstance(reasoning, int) and not isinstance(reasoning, bool) and reasoning >= 0
+    message = response.choices[0].message
+    # Capture accounting/presence only, never hidden reasoning text or arbitrary SDK fields.
+    return {'raw': message.content or '',
             'finish_reason': response.choices[0].finish_reason, 'model': response.model,
             'usage': ({k: getattr(usage, k, None) for k in
-                ('prompt_tokens', 'completion_tokens', 'total_tokens')} if usage else None)}
+                ('prompt_tokens', 'completion_tokens', 'total_tokens')} if usage else None),
+            'token_accounting': {'reasoning_tokens': reasoning if reported else None,
+                'reasoning_tokens_reported': reported,
+                'reasoning_content_present': bool(message.reasoning_content) if hasattr(message, 'reasoning_content') else None,
+                'note': 'Gateway-reported optional metadata only. Absence is not zero; no inference from finish_reason or visible text.'}}
 
 
 async def execute(args):

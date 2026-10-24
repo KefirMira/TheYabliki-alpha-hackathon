@@ -197,6 +197,10 @@ python -m evaluation --real --max-requests 8 --total-seconds 600 --allow-rag-tra
 
 ### Сравнение двух синтетических компаний — v1.20.2, подготовка реального режима v1.20.3
 
+Диагностика v1.20.3 и подготовка v1.20.4: [обрезание, reasoning metadata и opt-in
+`--compact`](EVALUATION_TRUNCATION.md). Флаг действует только на evaluation;
+схема и production-промпты прежние. Без --compact используется исходный вариант.
+
 Отдельный CLI **fake по умолчанию**: без dotenv, SDK и внешней сети в fake/обычном plan.
 Реальный режим включается только явными флагами после отдельного разрешения:
 

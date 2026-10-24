@@ -12,6 +12,7 @@ from evaluation.inputs import synthetic_chunks
 from evaluation.runner import OUTPUT_ROOT, fake_complete, make_plan, run, write_json, sanitized, validate_real_plan
 from evaluation.__main__ import configuration, real_client, complete_with_client
 from evaluation.scenarios import scenarios
+from evaluation.compact import VARIANT as COMPACT_VARIANT, RULES as COMPACT_RULES
 from schemas.company import CompanyProfile
 from services.structured_analysis_service import parse_structured_analysis
 
@@ -51,14 +52,18 @@ def comparison_cases():
 
 def comparison_plan(args=None):
     cases=comparison_cases()
+    variant=COMPACT_VARIANT if getattr(args,'compact',False) else 'comparison-baseline-v1'
+    suffix=COMPACT_RULES if variant==COMPACT_VARIANT else ''
+    if suffix:cases=[{**case,'evaluation_prompt_variant':variant} for case in cases]
     limits=dict(max_requests=getattr(args,'max_requests',2),max_input_tokens=getattr(args,'max_input_tokens',8000),
         max_output_tokens=getattr(args,'max_output_tokens',1000),
         request_seconds=getattr(args,'request_seconds',60),total_seconds=getattr(args,'total_seconds',120),
         billing_mode='organizer_comparison_rub_quota',
         input_rate=None,output_rate=None,budget_usd=None)
-    prepared,plan=make_plan(cases,synthetic_chunks(),limits,profile_model=ComparisonProfile)
+    prepared,plan=make_plan(cases,synthetic_chunks(),limits,profile_model=ComparisonProfile,question_suffix=suffix)
     validate_real_plan(plan)
     plan.update(execution_available='EXPLICIT_ORGANIZER_PAIR_ONLY',real_comparison_requires_separate_permission=True,
+        prompt_variant=variant,question_suffix_sha256=hashlib.sha256(suffix.encode()).hexdigest(),
         expected_total_input_planning_bound=sum(p['input_token_planning_bound'] for _,p in prepared),
         total_output_token_limit=2*limits['max_output_tokens'],
         note='Two sequential calls, one per fixed synthetic profile; no retries or fallback. Existing single organizer-gateway mode is unchanged.')
@@ -66,7 +71,13 @@ def comparison_plan(args=None):
 
 
 def validate_fixed_pair(prepared, plan):
-    expected,_=make_plan(comparison_cases(),synthetic_chunks(),plan['limits'],profile_model=ComparisonProfile)
+    variant=plan['prompt_variant']
+    if variant not in {'comparison-baseline-v1',COMPACT_VARIANT}:raise ValueError('COMPARISON_FIXTURE_MISMATCH')
+    suffix=COMPACT_RULES if variant==COMPACT_VARIANT else ''
+    cases=comparison_cases()
+    if suffix:cases=[{**case,'evaluation_prompt_variant':variant} for case in cases]
+    expected,_=make_plan(cases,synthetic_chunks(),plan['limits'],profile_model=ComparisonProfile,question_suffix=suffix)
+    if plan['question_suffix_sha256']!=hashlib.sha256(suffix.encode()).hexdigest():raise ValueError('COMPARISON_FIXTURE_MISMATCH')
     if prepared != expected or prepared[0][0]['news'] != prepared[1][0]['news'] or prepared[0][1]['evidence'] != prepared[1][1]['evidence']:
         raise ValueError('COMPARISON_FIXTURE_MISMATCH')
 
@@ -113,6 +124,7 @@ async def execute(args, *, complete=fake_complete, root=OUTPUT_ROOT):
     print(json.dumps({'mode':'comparison-plan-no-llm' if args.plan else 'real' if real else 'fake','plan':plan},ensure_ascii=False))
     if args.plan:return 0
     metadata={'synthetic_rag':True,'corpus_files':[],'comparison':True,
+              'prompt_variant':plan['prompt_variant'],
               'requested_model':config.get('LLM_MODEL') if real else 'fake-no-llm',
               'provider_host':getattr(args,'allow_provider_host',None) if real else None,
               'unknown_cost_acknowledged':getattr(args,'acknowledge_unknown_cost',False)}
@@ -160,6 +172,7 @@ async def execute(args, *, complete=fake_complete, root=OUTPUT_ROOT):
 def arguments(argv=None):
     parser=argparse.ArgumentParser(description='Fixed synthetic comparison: fake by default, explicit organizer pair')
     parser.add_argument('--plan',action='store_true')
+    parser.add_argument('--compact',action='store_true',help='Opt-in compact evaluation prompt; production and baseline remain unchanged')
     parser.add_argument('--real',action='store_true')
     parser.add_argument('--organizer-gateway',action='store_true')
     parser.add_argument('--synthetic-rag',action='store_true')

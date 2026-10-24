@@ -4,7 +4,7 @@ from schemas.company import CompanyProfile
 from services.search_service import search_chunks
 
 
-def prepare(case, chunks, *, profile_model=CompanyProfile):
+def prepare(case, chunks, *, profile_model=CompanyProfile, question_suffix=''):
     assert_sources_unchanged()
     company = profile_model.model_validate(case['company'])
     selected = search_chunks(query=case['news'], chunks=chunks, top_k=3)
@@ -17,7 +17,7 @@ def prepare(case, chunks, *, profile_model=CompanyProfile):
         evidence.append({'id': index, 'document': name, 'date': DOCUMENT_DATES.get(name),
                          'page': chunk['page'], 'chunk_id': chunk.get('chunk_id', 1),
                          'score': round(chunk['score'], 4), 'text': chunk['text']})
-    return {'messages': rag_messages(company_question(company, case['news']), '\n\n'.join(parts)),
+    return {'messages': rag_messages(company_question(company, case['news'])+question_suffix, '\n\n'.join(parts)),
             'evidence': evidence}
 
 
