@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Entirely invented RSS. No source material or private hackathon data. -->
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>DISPLAY NAME MUST NOT BECOME source_name</title>
+    <link>https://example.invalid/</link>
+    <description>Synthetic collector fixture</description>
+    <language>ru</language>
+    <item>
+      <title>Synthetic workshop announcement</title>
+      <description><![CDATA[<p>Invented <strong>workshop</strong> update &amp; test.</p><script>never run or retain this</script>]]></description>
+      <guid isPermaLink="false">SYNTH-RSS-001</guid>
+      <link>https://example.invalid/News/A?utm_source=fixture&amp;article=1#part</link>
+      <pubDate>Thu, 01 Jan 2026 12:00:00 +0300</pubDate>
+    </item>
+    <item>
+      <title>Synthetic encoded content</title>
+      <description>Invented short announcement.</description>
+      <content:encoded><![CDATA[<div>Invented extended text.<br/>Second line.</div><style>hidden-css</style>]]></content:encoded>
+      <guid isPermaLink="false">SYNTH-RSS-002</guid>
+      <pubDate>2026-01-02T09:30:00Z</pubDate>
+    </item>
+    <item>
+      <title>Synthetic undated announcement</title>
+      <description>Only an invented summary is available.</description>
+      <guid>SYNTH-RSS-003</guid>
+      <link>https://example.invalid/undated</link>
+    </item>
+    <item>
+      <title>Synthetic invalid date</title>
+      <description>Invented item; publication time is unknown.</description>
+      <guid>SYNTH-RSS-004</guid>
+      <pubDate>not-a-date</pubDate>
+    </item>
+    <item>
+      <title>Synthetic ambiguous timezone</title>
+      <description>Invented item without a timezone.</description>
+      <guid>SYNTH-RSS-005</guid>
+      <pubDate>2026-01-03T10:00:00</pubDate>
+    </item>
+    <item>
+      <title>Must not replace missing content with this title</title>
+      <guid>SYNTH-RSS-006</guid>
+    </item>
+    <item>
+      <description>Invented item without title.</description>
+      <guid>SYNTH-RSS-007</guid>
+    </item>
+    <item>
+      <title>Synthetic item without identity</title>
+      <description>Invented text but no link or guid.</description>
+    </item>
+    <item>
+      <title>Synthetic invalid URL</title>
+      <description>Invented invalid link.</description>
+      <link>ftp://example.invalid/not-http</link>
+    </item>
+    <item>
+      <title>Synthetic invalid guid</title>
+      <description>Invented item with padded external ID.</description>
+      <guid> SYNTH-PADDED </guid>
+    </item>
+  </channel>
+</rss>

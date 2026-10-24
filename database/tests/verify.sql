@@ -19,7 +19,7 @@ BEGIN
  END;
  IF NOT caught THEN RAISE EXCEPTION 'Unexpected acceptance: %',statement; END IF;
 END $$;
-SELECT pg_temp.assert_true((SELECT count(*)=13 FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'),'Expected 13 tables');
+SELECT pg_temp.assert_true((SELECT count(*)=18 FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'),'Expected 18 tables');
 SELECT pg_temp.assert_true((SELECT count(*)=2 FROM companies),'companies seed');
 SELECT pg_temp.assert_true((SELECT count(*)=2 FROM persons),'persons seed');
 SELECT pg_temp.assert_true((SELECT count(*)=2 FROM company_person_links),'links seed');
@@ -71,14 +71,17 @@ INSERT INTO insight_updates(company_news_analysis_id,verification_status,update_
 SELECT pg_temp.reject(format('INSERT INTO insight_updates(company_news_analysis_id,verification_status,update_summary) VALUES (%s,''INVALID'',''Test'')',:analysis_id),'23514','insight_updates_status_check');
 SELECT pg_temp.reject(format('INSERT INTO insight_updates(company_news_analysis_id,verification_status,update_summary,supporting_data) VALUES (%s,''UNVERIFIED'',''Test'',''{}'')',:analysis_id),'23514','pulse_updates_json_check');
 SELECT pg_temp.reject(format('INSERT INTO company_documents(company_id,original_filename,storage_key,extracted_metadata) VALUES (%s,''test'',''test'',''[]'')',:company_id),'23514','pulse_document_json_check');
--- All declared FKs are validated; test each with a nonexistent parent.
+-- All FKs are validated. Legacy single-column FKs use this id-based runner;
+-- 005 composite keys (attempts have no id) are exercised separately below.
+SELECT pg_temp.assert_true(NOT EXISTS(SELECT FROM pg_constraint WHERE contype='f' AND connamespace='public'::regnamespace AND NOT convalidated),'All FKs validated');
 DO $$ DECLARE fk record; row_id bigint; empty_run_id bigint; BEGIN
  -- This run has no results, so its company FK can fail independently of the
  -- cross-table company-consistency trigger.
  INSERT INTO analysis_runs(analysis_type) VALUES ('FK_TEST') RETURNING id INTO empty_run_id;
  FOR fk IN SELECT conrelid::regclass AS tbl, a.attname AS col, c.conname, c.convalidated
  FROM pg_constraint c JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=c.conkey[1]
- WHERE c.contype='f' AND c.connamespace='public'::regnamespace LOOP
+ WHERE c.contype='f' AND c.connamespace='public'::regnamespace
+ AND c.conrelid NOT IN ('news_analysis_jobs'::regclass,'news_analysis_attempts'::regclass,'company_verified_names'::regclass,'news_company_match_runs'::regclass,'news_company_match_candidates'::regclass) LOOP
   PERFORM pg_temp.assert_true(fk.convalidated,'Unvalidated FK: '||fk.conname);
   EXECUTE format('SELECT id FROM %s ORDER BY id DESC LIMIT 1',fk.tbl) INTO row_id;
   PERFORM pg_temp.assert_true(row_id IS NOT NULL,'Missing fixture for FK: '||fk.conname);
@@ -95,5 +98,26 @@ END $$;
 -- Nullable run company retains the original multi-company semantics.
 UPDATE analysis_runs SET company_id=NULL WHERE id=:run_id;
 UPDATE company_news_analyses SET company_id=:other_id WHERE id=:analysis_id;
+-- Disposable 005 fixtures: do not attach coordination FKs to the legacy test run.
+INSERT INTO analysis_runs(company_id,analysis_type,status) VALUES (:company_id,'NEWS','COMPLETED') RETURNING id AS job_run_id \gset
+INSERT INTO company_news_analyses(analysis_run_id,company_id,news_id) VALUES (:job_run_id,:company_id,:news_id) RETURNING id AS job_insight_id \gset
+INSERT INTO news_analysis_jobs(company_id,news_id) VALUES (:company_id,:news_id) RETURNING id AS job_id \gset
+INSERT INTO news_analysis_attempts(job_id,attempt_no,company_id,news_id,run_id,claim_token,deadline_at)
+VALUES (:job_id,1,:company_id,:news_id,:job_run_id,'00000000-0000-4000-8000-000000000005',now()+interval '3 minutes');
+SELECT pg_temp.reject(format('UPDATE news_analysis_attempts SET job_id=-1 WHERE job_id=%s AND attempt_no=1',:job_id),'23503');
+SELECT pg_temp.reject(format('UPDATE news_analysis_attempts SET run_id=-1 WHERE job_id=%s AND attempt_no=1',:job_id),'23503');
+UPDATE news_analysis_attempts SET insight_id=:job_insight_id,response_payload='{}' WHERE job_id=:job_id AND attempt_no=1;
+SELECT pg_temp.reject(format('UPDATE news_analysis_attempts SET insight_id=-1 WHERE job_id=%s AND attempt_no=1',:job_id),'23503');
+-- Matching provenance has its own FK graph, independent of AI history.
+INSERT INTO company_verified_names(company_id,name,verified_by,provenance)
+VALUES (:company_id,'Synthetic verified name','Synthetic reviewer','Synthetic registry') RETURNING id AS alias_id \gset
+INSERT INTO news_company_match_runs(news_id,algorithm_version,news_hash,dictionary_hash,status,news_snapshot)
+VALUES (:news_id,'synthetic-v1',repeat('a',64),repeat('b',64),'MATCHED','{}') RETURNING id AS match_id \gset
+INSERT INTO news_company_match_candidates(run_id,company_id,company_snapshot,evidence)
+VALUES (:match_id,:company_id,'{}','[{"quote":"Synthetic"}]');
+SELECT pg_temp.reject(format('UPDATE company_verified_names SET company_id=-1 WHERE id=%s',:alias_id),'23503');
+SELECT pg_temp.reject(format('UPDATE news_company_match_runs SET news_id=-1 WHERE id=%s',:match_id),'23503');
+SELECT pg_temp.reject(format('UPDATE news_company_match_candidates SET company_id=-1 WHERE run_id=%s',:match_id),'23503');
+SELECT pg_temp.reject(format('UPDATE news_company_match_candidates SET run_id=-1 WHERE run_id=%s',:match_id),'23503');
 ROLLBACK;
-\echo PASS: seed, 13 tables, AI round trip, constraints and company consistency
+\echo PASS: seed, 18 tables, AI round trip, constraints and company consistency
