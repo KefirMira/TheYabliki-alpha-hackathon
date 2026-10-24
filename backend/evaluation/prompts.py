@@ -4,7 +4,7 @@ Source drift blocks evaluation; BOM/newlines normalized across Windows/Linux.
 from pathlib import Path
 import hashlib
 
-SOURCE_HASHES = {'rag_service.py': '7317a9fffc5697ab91afa8245398c73df6dabd962d8e972af66884c5f39c096d', 'personalization_service.py': '1f26aeb10b1b5dc874520707a06f0d6d576acf03d0585e6c641d930656499bf8'}
+SOURCE_HASHES = {'rag_service.py': '7317a9fffc5697ab91afa8245398c73df6dabd962d8e972af66884c5f39c096d', 'personalization_service.py': 'a9548f8b9147d7dfa01c369d689397e9b1086474c0ddefc44c443039d26d729e'}
 DOCUMENT_DATES = {'ALFA_Russian_Steels_1К21PreviewUpdate_15Apr2021.pdf': '2021-04-15', 'FI_Strategy_3Q26_22072026.pdf': '2026-07-22', 'Gold_digest_August26.pdf': '2026-08', 'Inflation_tracker_02.pdf': '2026-09-02', 'policy_rate.pdf': '2026-09-11', 'Бонд_Бриф_14092026.pdf': '2026-09-14'}
 
 def assert_sources_unchanged():

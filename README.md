@@ -10,5 +10,7 @@ Backend для frontend без установки Python: [Docker demo/full и s
 
 Следующий шаг: [анализ сохранённой новости для компании](docs/SAVED_NEWS_ANALYSIS_API.md).
 
+Персонализация v1.20.0: [контекст компании, структурные показатели и запрет внешней передачи CSV](docs/COMPANY_AI_CONTEXT.md).
+
 PostgreSQL 16 для «Пульса бизнеса»: [запуск и передача БД](docs/DATABASE_HANDOFF.md).
 Изолированные проверки: `powershell -NoProfile -ExecutionPolicy Bypass -File database/tests/run.ps1`.

@@ -13,6 +13,7 @@ from schemas.company_analysis_api import CreatedCompanyAnalysis
 from schemas.persisted_analysis import PersistableAnalysis
 from services.protected_ai import invoke
 from services.company_profile_service import CompanyNotFound, to_company_profile
+from services.company_context_service import load_company_context, external_transfer_guard
 
 
 class AnalysisFailure(Exception):
@@ -50,16 +51,27 @@ def cached_analysis(payload, reused=True):
 
 
 async def default_analyzer(*, news, company):
+    # Fail before importing the SDK or creating an external client.
+    external_transfer_guard(company._ai_context)
     from services.personalization_service import analyze_for_company_with_evidence
 
     return await analyze_for_company_with_evidence(news, company)
 
 
 class CompanyAnalysisService:
-    def __init__(self, sessions, analyzer=default_analyzer, evidence_repository=EvidenceRepository):
+    def __init__(self, sessions, analyzer=default_analyzer, evidence_repository=EvidenceRepository,
+                 context_loader=load_company_context):
         self.sessions = sessions
         self.analyzer = analyzer
         self.evidence_repository = evidence_repository
+        self.context_loader = context_loader
+
+    async def _profile_for_analysis(self, session, record):
+        company = to_company_profile(record)
+        company._ai_context = await self.context_loader(session, record)
+        if self.analyzer is default_analyzer:
+            external_transfer_guard(company._ai_context)
+        return company
 
     async def analyze(self, source_id: str, news: str, title: str | None = None) -> SavedAnalysis:
         if not news.strip():
@@ -69,9 +81,10 @@ class CompanyAnalysisService:
                 record = await CompanyRepository(session).get_by_source_id(source_id)
                 if record is None:
                     raise CompanyNotFound(source_id)
+                company = await self._profile_for_analysis(session, record)
                 news_id = await NewsRepository(session).create_manual(news, title)
                 run_id = await AnalysisRunRepository(session).start(record.id)
-        return await self._execute(source_id, news, record, news_id, run_id)
+        return await self._execute(source_id, news, record, news_id, run_id, company=company)
 
     async def analyze_saved(self, source_id: str, news_id: int) -> SavedAnalysis:
         async with self.sessions() as session:
@@ -86,6 +99,8 @@ class CompanyAnalysisService:
                 if not isinstance(news, str) or not news.strip() or len(news) > 100_000:
                     raise NewsNotAnalyzable(news_id)
                 claim = await NewsAnalysisJobRepository(session).claim(record.id, news_id)
+                if claim.cached is None:
+                    company = await self._profile_for_analysis(session, record)
         if claim.cached is not None:
             try:
                 cached = cached_analysis(claim.cached)
@@ -97,16 +112,16 @@ class CompanyAnalysisService:
                 return cached
             except (ValueError, TypeError, KeyError) as error:
                 raise AnalysisConflict('ANALYSIS_HISTORY_INVALID',claim.run_id) from error
-        return await self._execute(source_id, news, record, news_id, claim.run_id, claim)
+        return await self._execute(source_id, news, record, news_id, claim.run_id, claim, company)
 
-    async def _execute(self, source_id, news, record, news_id, run_id, claim=None) -> SavedAnalysis:
+    async def _execute(self, source_id, news, record, news_id, run_id, claim=None, company=None) -> SavedAnalysis:
         # No session or transaction survives this boundary.
         phase = "AI_ANALYSIS_FAILED"
         try:
             if claim is not None:
                 async with self.sessions() as session, session.begin():
                     await NewsAnalysisJobRepository(session).dispatch(claim)
-            kwargs = dict(news=news, company=to_company_profile(record))
+            kwargs = dict(news=news, company=company if company is not None else to_company_profile(record))
             raw = await invoke(self.analyzer, **kwargs) if claim is not None else await self.analyzer(**kwargs)
             bundle = PersistableAnalysis.model_validate(raw)
             if bundle.analysis.company_id != source_id or bundle.analysis.news != news:

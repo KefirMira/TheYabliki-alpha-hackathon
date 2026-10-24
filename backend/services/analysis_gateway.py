@@ -7,7 +7,7 @@ async def analyze_for_company(*, news, company):
     return await analyze(news=news, company=company)
 
 
-async def analyze_with_rag(*, question, search_query):
+async def analyze_with_rag(*, question, search_query, **options):
     from services.rag_service import analyze_with_rag as analyze
 
-    return await analyze(question=question, search_query=search_query)
+    return await analyze(question=question, search_query=search_query, **options)

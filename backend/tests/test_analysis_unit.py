@@ -100,7 +100,7 @@ def test_transaction_boundaries_and_failure_status(monkeypatch, bundle_factory, 
             raise RuntimeError("AI failed")
         return bundle_factory()
 
-    service = CompanyAnalysisService(Sessions(), analyzer, Evidence)
+    service = CompanyAnalysisService(Sessions(), analyzer, Evidence, context_loader=AsyncMock(return_value=None))
     if failure is None:
         assert asyncio.run(service.analyze(record.source_id, "Synthetic persistence news")).run_id == 3
         assert "COMPLETED" in events and "FAILED" not in events

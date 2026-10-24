@@ -69,5 +69,5 @@ ANALYSIS_ERRORS = errors(**{
     "404": "COMPANY_NOT_FOUND; для анализа сохранённой новости также NEWS_NOT_FOUND; запуск не создаётся",
     "422": "Ошибка валидации; для сохранённой новости также NEWS_CONTENT_UNAVAILABLE",
     "502": "AI_ANALYSIS_FAILED; run_id и статус FAILED, если запись статуса подтверждена",
-    "503": "AI_DISABLED_IN_DEMO / DATABASE_UNAVAILABLE / ошибка сохранения / неопределённый статус запуска",
+    "503": "AI_DISABLED_IN_DEMO / DATABASE_UNAVAILABLE / COMPANY_CONTEXT_EXTERNAL_TRANSFER_BLOCKED (без внешнего вызова) / ошибка сохранения / неопределённый статус запуска",
 })
