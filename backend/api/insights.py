@@ -46,7 +46,7 @@ async def list_insights(
         raise read_error(error) from error
 
 
-@router.get("/{source_id}/insights/{insight_id}", response_model=InsightCard, responses=errors(**{"404": "COMPANY_NOT_FOUND / INSIGHT_NOT_FOUND, включая чужой инсайт", "503": "DATABASE_UNAVAILABLE"}),
+@router.get("/{source_id}/insights/{insight_id}", response_model=InsightCard, responses=errors(**{"404": "COMPANY_NOT_FOUND / INSIGHT_NOT_FOUND при исчезновении данных; недоступная или отсутствующая карточка при действующем auth-scope даёт общий 403 ACCESS_DENIED", "503": "DATABASE_UNAVAILABLE"}),
     description="Сохранённый COMPLETED результат и evidence запрошенной компании; без LLM.")
 async def get_insight(
     source_id: str = Path(min_length=1, max_length=200),

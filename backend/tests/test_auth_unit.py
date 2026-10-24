@@ -77,7 +77,7 @@ def test_login_validation_does_not_echo_credentials(monkeypatch):
 
 def test_protected_openapi_documents_bearer():
     spec=app.openapi()
-    assert len(spec['paths'])==14
+    assert len(spec['paths'])==15
     for method,path in BUSINESS_PATHS:
         template=path.replace('SYNTH-A','{source_id}')
         if template.endswith('/insights/1'):template=template[:-1]+'{insight_id}'

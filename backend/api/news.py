@@ -30,7 +30,7 @@ def demo_policy(news: ExternalNewsInput):
 
 @router.post("", response_model=IngestedNews, status_code=201, responses={
     200: {"model": IngestedNews, "description": "Existing news, unchanged; inspect diagnostics"},
-    403: {"model": APIError, "description": "Demo synthetic data policy rejected the input"},
+    403: {"model": APIError, "description": "ACCESS_DENIED для приватного дубликата, без news_id/метаданных; либо DEMO_SYNTHETIC_NEWS_ONLY при нарушении demo policy"},
     409: {"model": APIError, "description": "Pair and URL identify different stored news"},
     503: {"model": APIError, "description": "Database unavailable or bounded concurrency retry required"},
 }, description="EXTERNAL без AI. Обязательны title/content (до 500/100000). Пара source_name+source_id — основной ключ, канонический HTTP(S) URL — дополнительный. Без идентификаторов дедупликации нет. Дубликат не перезаписывается; даты с timezone. Demo: synthetic-demo / SYNTH-* / example.invalid.")

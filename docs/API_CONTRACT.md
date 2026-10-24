@@ -1,8 +1,8 @@
-> Обновление v1.22.0: 3 новых auth-операции, всего 14. Успешные domain JSON сохранены; 401/403 обязательны. Для приватных новостей требуется grant, в том числе при чтении карточки и COMPLETED. Таблица ниже описывает прежние domain payload; security-контракт имеет приоритет: [AUTH_ACCESS.md](AUTH_ACCESS.md).
+> Обновление v1.22.1: защищённый GET `/api/companies/{source_id}/capabilities`, всего 15 операций. Контракт и ограничения: [CAPABILITIES_API.md](CAPABILITIES_API.md). Успешные domain JSON сохранены; 401/403 обязательны. Для приватных новостей требуется grant, в том числе при чтении карточки и COMPLETED. Таблица ниже описывает прежние domain payload; security-контракт имеет приоритет: [AUTH_ACCESS.md](AUTH_ACCESS.md).
 
 # Контракт AI/backend v1.15.0
 
-Проверен по обработчикам всех 11 операций. `/docs` и `/openapi.json` содержат актуальные схемы Pydantic. С v1.22.0 требуется индивидуальный Bearer для всех business API; legacy AI-endpoints закрыты. См. AUTH_ACCESS.md. JWT не используется. Даты ответов — ISO 8601; денежные Decimal профиля — JSON-строки. Ошибки не содержат DSN, SQL или секретов.
+Базовая таблица содержит 11 domain-операций; v1.22.0 добавила три auth-операции, v1.22.1 — capabilities. `/docs` и `/openapi.json` содержат актуальные схемы Pydantic всех 15 операций. Требуется индивидуальный Bearer для всех business API; legacy AI-endpoints закрыты (401/403). См. AUTH_ACCESS.md. JWT не используется. Даты ответов — ISO 8601; денежные Decimal профиля — JSON-строки. Ошибки не содержат DSN, SQL или секретов.
 
 | Метод и путь | Запрос | Успех | Обработанные ошибки и ограничения |
 |---|---|---|---|
@@ -15,8 +15,9 @@
 | POST /api/companies/{source_id}/analyses | CompanyAnalysisRequest: news.text 1–100000, news.title опционально 1–500; непустые | 201 CreatedCompanyAnalysis | 404 компания, 422, 502 AI, 503 demo/БД/сохранение/неопределённый статус. Создаёт MANUAL-новость |
 | POST /api/companies/{source_id}/news/{news_id}/analyses | без тела; news_id положительный int64 | 201 новый / 200 сохранённый CreatedCompanyAnalysis | 409 RUNNING/retry/лимит/история; 404 компания/новость без запуска; 422 параметры или NEWS_CONTENT_UNAVAILABLE; 502 AI; 503 demo/БД/сохранение/статус. Новость не изменяется |
 | GET /api/companies/{source_id}/insights | limit 1–100, default 20; cursor ≤2048 | 200 InsightFeed: items, next_cursor | 404 компания; 422 валидация/INVALID_CURSOR; 503 БД. Только COMPLETED; created_at DESC, id DESC. Курсор привязан к компании. Пустой список — 200 |
-| GET /api/companies/{source_id}/insights/{insight_id} | insight_id положительный int64 | 200 InsightCard | 404 компания/инсайт, в том числе чужой или незавершённый; 422; 503 БД. Без LLM |
-| POST /api/news | ExternalNewsInput | 201 создана / 200 дубликат: IngestedNews | 403 demo policy, 409 NEWS_IDENTITY_CONFLICT, 422, 503 DATABASE_UNAVAILABLE / NEWS_INGESTION_RETRY. Без AI и analysis_runs |
+| GET /api/companies/{source_id}/insights/{insight_id} | insight_id положительный int64 | 200 InsightCard | 401 сессия; 403 общий отказ для недоступной/отсутствующей карточки в auth-scope; 404 при исчезновении компании/данных; 422; 503 БД. Без LLM |
+| POST /api/news | ExternalNewsInput | 201 создана / 200 свой дубликат: IngestedNews | 401 сессия; 403 чужой дубликат без метаданных либо demo policy; 409 NEWS_IDENTITY_CONFLICT, 422, 503 DATABASE_UNAVAILABLE / NEWS_INGESTION_RETRY. Без AI и analysis_runs |
+| GET /api/companies/{source_id}/capabilities | Bearer + membership; source_id 1–200 | 200 CompanyCapabilities: company_id, mode, operations, external_provider | 401/403/422/503. BLOCKED/UNKNOWN в теле не дают права или разрешения retry; нет чтения jobs, LLM или передачи контекста. Полный контракт в CAPABILITIES_API.md |
 
 `CreatedCompanyAnalysis`: run_id, insight_id, news_id, status=COMPLETED, company_id (внешний source_id), analysis. Анализ содержит relevance, summary, risks, opportunities, recommendations, sources и validation. `InsightCard` возвращает также исходные evidence. Не заменяйте relevance выдуманными confidence/impact. Повтор POST сохранённой новости защищён по паре company_id/news_id: COMPLETED возвращается без LLM, RUNNING даёт 409. Ручной POST и legacy API такой защиты не имеют.
 

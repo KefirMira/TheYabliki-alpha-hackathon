@@ -10,7 +10,11 @@ from services.auth_service import AuthService, denied, unauthorized, TOKEN_PATTE
 
 bearer = HTTPBearer(auto_error=False)
 router = APIRouter(tags=['authentication'])
-AUTH_ERRORS = {401:{'model':APIError},403:{'model':APIError},503:{'model':APIError}}
+AUTH_ERRORS = {
+    401: {'model': APIError, 'description': 'AUTHENTICATION_REQUIRED: нет действующей Bearer-сессии; WWW-Authenticate: Bearer. Без анонимного fallback.'},
+    403: {'model': APIError, 'description': 'ACCESS_DENIED: нет права на компанию/новость/операцию; без чужих ID и данных. Не подтверждает существование объекта.'},
+    503: {'model': APIError, 'description': 'DATABASE_UNAVAILABLE: проверка доступа или БД недоступна; без обхода ACL и раскрытия подключения.'},
+}
 
 
 def factory(request):
@@ -53,7 +57,10 @@ async def legacy_denied(actor=Depends(current_actor)):
 
 
 @router.post('/api/auth/login',response_model=SessionResponse,
-             responses={401:{'model':APIError},422:{'model':APIError},429:{'model':APIError},503:{'model':APIError}},
+             responses={401:{'model':APIError, 'description':'INVALID_CREDENTIALS: неверные, неизвестные или неактивные учётные данные; одинаковый ответ без раскрытия наличия аккаунта'},
+                        422:{'model':APIError, 'description':'INVALID_LOGIN_INPUT без отражения пароля и входных значений'},
+                        429:{'model':APIError, 'description':'LOGIN_RATE_LIMITED; Retry-After, без повторной проверки пароля'},
+                        503:AUTH_ERRORS[503]},
              description='Индивидуальная сессия на час. Пароль и токен не журналируются; без публичной регистрации.')
 async def login(body: LoginInput, request: Request, response: Response):
     response.headers['Cache-Control'] = 'no-store'

@@ -25,3 +25,8 @@ def execution_mode() -> str:
     if mode not in {"demo", "full"}:
         raise ValueError("AI_MODE must be demo or full")
     return mode
+
+
+def ai_disabled_reason() -> str | None:
+    """Shared mode policy for execution and read-only capability reporting."""
+    return "AI_DISABLED_IN_DEMO" if execution_mode() == "demo" else None

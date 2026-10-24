@@ -3,12 +3,12 @@ from fastapi.testclient import TestClient
 from main import app
 
 
-def test_all_eleven_operations_are_documented():
+def test_all_operations_are_documented():
     spec = app.openapi()
     operations = [(path, method, value) for path, methods in spec["paths"].items()
                   for method, value in methods.items() if method in {"get", "post"}]
-    assert len(operations) == 14
-    assert spec["info"]["version"] == "1.22.0"
+    assert len(operations) == 15
+    assert spec["info"]["version"] == "1.22.1"
     for path, method, operation in operations:
         assert operation["description"], (method, path)
         for status, response in operation["responses"].items():
@@ -22,6 +22,9 @@ def test_all_eleven_operations_are_documented():
     saved = spec["paths"]["/api/companies/{source_id}/news/{news_id}/analyses"]["post"]
     assert "requestBody" not in saved
     assert {"200", "201", "401", "403", "404", "409", "422", "502", "503"} == set(saved["responses"])
+    assert "Demo блокирует и cache" in saved["responses"]["200"]["description"]
+    assert "ACCESS_DENIED" in news["responses"]["403"]["description"]
+    assert "DATABASE_UNAVAILABLE" in spec["paths"]["/api/auth/login"]["post"]["responses"]["503"]["description"]
 
 
 def test_rag_documentation_does_not_filter_runtime_response(monkeypatch):

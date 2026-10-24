@@ -40,9 +40,9 @@ async def create_company_analysis(
 
 @router.post("/{source_id}/news/{news_id}/analyses", response_model=CreatedCompanyAnalysis, status_code=201,
              dependencies=[Depends(require_ai_enabled)], responses={**ANALYSIS_ERRORS,
-                 200: {'model': CreatedCompanyAnalysis, 'description': 'Сохранённый COMPLETED без нового AI'},
+                 200: {'model': CreatedCompanyAnalysis, 'description': 'Сохранённый COMPLETED без нового AI, после membership/can_analyze/news grant. Demo блокирует и cache: 503 AI_DISABLED_IN_DEMO'},
                  409: {'model': APIError, 'description': 'RUNNING, требуется разрешение retry, лимит или проверка истории/неопределённого исхода'}},
-             description="Атомарный claim пары. COMPLETED: 200 без AI; RUNNING: 409; FAILED требует административного разрешения. Максимум две попытки. Тело не требуется. Demo: 503. Для нового анализа контекст PostgreSQL запрещён внешнему AI: 503 COMPANY_CONTEXT_EXTERNAL_TRANSFER_BLOCKED, claim откатывается.")
+             description="Сессия, can_analyze и news grant обязательны; grant проверяется до claim/cache. Атомарный claim пары. COMPLETED: 200 без AI; RUNNING: 409; FAILED требует административного разрешения. Максимум две попытки. Тело не требуется. Demo: 503 даже для COMPLETED, без обхода через capabilities. Для нового анализа контекст PostgreSQL запрещён внешнему AI: 503 COMPANY_CONTEXT_EXTERNAL_TRANSFER_BLOCKED, claim откатывается.")
 async def analyze_saved_news(
     response: Response,
     source_id: str = Path(min_length=1, max_length=200),
