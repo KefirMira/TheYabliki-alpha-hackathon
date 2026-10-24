@@ -1,14 +1,16 @@
+import { useEffect } from 'react'
 import { Bookmark, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
+import { useFavorites } from '@/hooks/useFavorites'
 import { useInsightCard } from '@/hooks/useInsightCard'
 import BackLink from '@/shared/ui/BackLink'
 import Card from '@/shared/ui/Card'
 import Chip from '@/shared/ui/Chip'
 import LayerTag from '@/shared/ui/LayerTag'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
-import { hideInsight, toggleFavorite } from '@/store/reducers/PulseSlice'
+import { markInsightSeen } from '@/store/reducers/InsightsSlice'
 import InsightSidePanel from '@/widgets/Insight/InsightSidePanel'
 import {
   Actions,
@@ -50,9 +52,15 @@ const Insight = () => {
   const { insightId = '' } = useParams()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const favorites = useAppSelector((state) => state.pulse.favorites)
+  const { favorites, toggle, hide } = useFavorites()
   const companyId = useAppSelector((state) => state.company.currentCompanyId)
   const { data, loading, error, reload } = useInsightCard(companyId, insightId)
+  const openedId = data?.insight.id
+
+  // Открытый инсайт больше не «новый» в ленте.
+  useEffect(() => {
+    if (openedId) dispatch(markInsightSeen(Number(openedId)))
+  }, [openedId, dispatch])
 
   const back = <BackLink to="/pulse/insights">Все инсайты</BackLink>
 
@@ -107,7 +115,7 @@ const Insight = () => {
   const relevance = relevanceText(insight, true)
 
   const handleNotRelevant = () => {
-    dispatch(hideInsight(insight.id))
+    hide(insight.id)
     navigate('/pulse/insights')
   }
 
@@ -118,7 +126,7 @@ const Insight = () => {
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            onClick={() => dispatch(toggleFavorite(insight.id))}
+            onClick={() => toggle(insight.id)}
             aria-pressed={isFavorite}
             className="h-auto px-3.5 py-[9px] text-sm font-medium"
           >
@@ -141,7 +149,7 @@ const Insight = () => {
 
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <Card className="gap-3.5 p-7">
+          <Card className="gap-3.5 p-5 md:p-7">
             <div className="flex items-center justify-between gap-2">
               <InsightKindTag insight={insight} withIcon={false} />
               {relevance && (

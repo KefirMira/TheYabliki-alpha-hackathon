@@ -69,7 +69,7 @@ export interface IInsightCard extends IInsightFeedItem {
   evidence: IInsightEvidence[]
 }
 
-/** Ответ анализа новости: `POST /api/companies/{source_id}/analyses` (201). */
+/** Ответ анализа новости: `POST /api/companies/{source_id}/news/{news_id}/analyses`. */
 export interface ICreatedAnalysis {
   run_id: number
   insight_id: number

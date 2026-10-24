@@ -1,15 +1,16 @@
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit'
 
-import { DEMO_COMPANY_IDS } from '@/shared/constants/companies'
+import { companiesForLogin, pickCompany } from '@/shared/constants/accounts'
 import { storageGet, storageSave } from '@/shared/storage/storage'
 
 import type { ICompanyProfile } from '../models/ICompany'
+import { storedUsername } from './AuthSlice'
 import { getCompanyProfile } from '../service/Company/getCompanyProfile'
 
 const CURRENT_COMPANY_KEY = 'current_company_id'
 
 export interface CompanyState {
-  /** source_id выбранной компании; до авторизации — из демо-списка. */
+  /** source_id выбранной компании — одной из компаний логина. */
   currentCompanyId: string | null
   profile: ICompanyProfile | null
   loading: boolean
@@ -22,12 +23,12 @@ export interface CompanyState {
   requestId: string | null
 }
 
-// Сохранённый выбор берём, только если компания всё ещё в списке.
-const initialCompanyId = (): string | null => {
-  const saved = storageGet(CURRENT_COMPANY_KEY)
-  if (saved && DEMO_COMPANY_IDS.includes(saved)) return saved
-  return DEMO_COMPANY_IDS[0] ?? null
-}
+// Сохранённый выбор берём, только если компания доступна логину сессии.
+const initialCompanyId = (): string | null =>
+  pickCompany(
+    companiesForLogin(storedUsername()) ?? [],
+    storageGet(CURRENT_COMPANY_KEY)
+  )
 
 const initialState: CompanyState = {
   currentCompanyId: initialCompanyId(),

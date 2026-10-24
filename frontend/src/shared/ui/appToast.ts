@@ -1,7 +1,7 @@
 import { showToast } from '@/hooks/useToast'
 
 /**
- * Единый фасад уведомлений, как в SampoSmart: toast.success / .info / .error.
+ * Единый фасад уведомлений: toast.success / .info / .error.
  * Выводит Toaster из корня приложения — снизу справа, один стиль на весь сайт.
  */
 export const toast = {

@@ -1,7 +1,8 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { type PayloadAction, createSlice } from '@reduxjs/toolkit'
 
 import type { IInsightFeedItem } from '../models/IInsight'
 import { getInsightsFeed } from '../service/Insights/getInsightsFeed'
+import { refreshInsightsFeed } from '../service/Insights/refreshInsightsFeed'
 import { setCurrentCompany } from './CompanySlice'
 
 export interface InsightsState {
@@ -21,6 +22,21 @@ export interface InsightsState {
    * компании, пока пользователь её переключал) в стор не пишется.
    */
   requestId: string | null
+  /** Инсайты, пришедшие при фоновом обновлении и ещё не открытые. */
+  newIds: number[]
+  /** Когда лента последний раз сверялась с сервером (ISO). */
+  refreshedAt: string | null
+  /**
+   * Когда фоновое обновление последний раз не удалось (ISO). Само оно
+   * ошибку не показывает — по этой отметке перепроверяется готовность
+   * сервиса, и при сбое появляется плашка.
+   */
+  refreshFailedAt: string | null
+  /**
+   * Последнее фоновое или ручное обновление. Ответ более раннего, пришедший
+   * позже, устарел: его снимок ленты старше, и замена затёрла бы свежую.
+   */
+  refreshRequestId: string | null
 }
 
 const initialState: InsightsState = {
@@ -33,6 +49,10 @@ const initialState: InsightsState = {
   errorMore: undefined,
   isInitialized: false,
   requestId: null,
+  newIds: [],
+  refreshedAt: null,
+  refreshFailedAt: null,
+  refreshRequestId: null,
 }
 
 const insightsSlice = createSlice({
@@ -40,6 +60,10 @@ const insightsSlice = createSlice({
   initialState,
   reducers: {
     resetInsightsFeed: () => initialState,
+    /** Инсайт открыли — он больше не «новый». */
+    markInsightSeen: (state, action: PayloadAction<number>) => {
+      state.newIds = state.newIds.filter((id) => id !== action.payload)
+    },
   },
   extraReducers: (builder) => {
     // Свой ответ — ответ последнего запроса и по ленте той же компании.
@@ -62,7 +86,9 @@ const insightsSlice = createSlice({
           state.errorMore = undefined
           return
         }
-        // Первая страница: лента начинается заново.
+        // Первая страница: лента начинается заново, а идущее обновление
+        // устарело — его ответ относится к прежней ленте.
+        state.refreshRequestId = null
         state.companyId = companyId
         state.items = []
         state.nextCursor = null
@@ -71,6 +97,7 @@ const insightsSlice = createSlice({
         state.error = undefined
         state.errorMore = undefined
         state.isInitialized = false
+        state.newIds = []
       })
       .addCase(getInsightsFeed.fulfilled, (state, action) => {
         if (!isCurrent(state, action.meta)) return
@@ -82,6 +109,7 @@ const insightsSlice = createSlice({
           state.items.push(...items.filter((i) => !known.has(i.insight_id)))
         } else {
           state.items = items
+          state.refreshedAt = new Date().toISOString()
         }
         state.nextCursor = next_cursor
         state.loadingList = false
@@ -100,8 +128,53 @@ const insightsSlice = createSlice({
         state.error = message
         state.isInitialized = true
       })
+      // Обновлений может идти несколько (фоновое и «Обновить»): применяется
+      // только ответ последнего запущенного.
+      .addCase(refreshInsightsFeed.pending, (state, action) => {
+        state.refreshRequestId = action.meta.requestId
+      })
+      // Фоновое обновление не трогает загрузку: устаревший ответ, ответ во
+      // время загрузки первой страницы, после ошибки или по другой компании
+      // отбрасывается.
+      .addCase(refreshInsightsFeed.fulfilled, (state, action) => {
+        if (
+          action.meta.requestId !== state.refreshRequestId ||
+          action.meta.arg.companyId !== state.companyId ||
+          !state.isInitialized ||
+          state.loadingList ||
+          state.error
+        ) {
+          return
+        }
+        const { items, reachedKnown, nextCursor } = action.payload
+        // Замена ленты во время «Показать ещё» перепутала бы страницы —
+        // такой ответ пропускаем, следующее обновление повторит.
+        if (!reachedKnown && state.loadingMore) return
+
+        const known = new Set(state.items.map((item) => item.insight_id))
+        const fresh = items.filter((item) => !known.has(item.insight_id))
+        if (reachedKnown) {
+          // Дошли до загруженного: новые сверху, остальное и курсор те же.
+          state.items.unshift(...fresh)
+        } else {
+          // Новых больше, чем догрузили, или лента была пуста: лента —
+          // эти страницы, курсор — их продолжение, «Показать ещё» верно.
+          state.items = items
+          state.nextCursor = nextCursor
+          state.errorMore = undefined
+        }
+        state.newIds.push(...fresh.map((item) => item.insight_id))
+        state.refreshedAt = new Date().toISOString()
+        state.refreshFailedAt = null
+        state.refreshRequestId = null
+      })
+      .addCase(refreshInsightsFeed.rejected, (state, action) => {
+        if (action.meta.requestId !== state.refreshRequestId) return
+        state.refreshFailedAt = new Date().toISOString()
+        state.refreshRequestId = null
+      })
   },
 })
 
-export const { resetInsightsFeed } = insightsSlice.actions
+export const { resetInsightsFeed, markInsightSeen } = insightsSlice.actions
 export default insightsSlice.reducer

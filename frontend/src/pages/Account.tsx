@@ -74,7 +74,7 @@ const Account = () => {
         }
       />
 
-      <Card className="flex-row flex-wrap items-center gap-5 p-7">
+      <Card className="flex-row flex-wrap items-center gap-5 p-5 md:p-7">
         <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-3xl bg-surface-page text-2xl font-bold uppercase">
           {initials}
         </span>
@@ -96,7 +96,7 @@ const Account = () => {
         </LogoutDialog>
       </Card>
 
-      <Card className="p-7">
+      <Card className="p-5 md:p-7">
         <div className="flex items-center gap-2.5">
           <h2 className="text-[17px] font-semibold">
             Аналитика под вашу сферу

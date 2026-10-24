@@ -1,13 +1,32 @@
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit'
 
 import type { ICreatedAnalysis } from '../models/IInsight'
-import { runAnalysis } from '../service/Insights/runAnalysis'
+import type { NewsDiagnostic } from '../models/INews'
+import { analysisNewsSaved, runAnalysis } from '../service/Insights/runAnalysis'
 
-/** Последний анализ своей новости по компании. */
-export type AnalysisRun =
-  | { status: 'running'; title: string }
-  | { status: 'done'; title: string; result: ICreatedAnalysis }
-  | { status: 'error'; title: string; message: string; demo: boolean }
+interface RunBase {
+  title: string
+  /** Новость в базе, когда она уже сохранена. */
+  newsId: number | null
+  /**
+   * Отпечаток содержимого формы: повторная отправка той же новости берёт
+   * сохранённый newsId и не сохраняет её снова.
+   */
+  newsKey: string
+}
+
+/** Последний анализ новости по компании. */
+export type AnalysisRun = RunBase &
+  (
+    | { status: 'running'; stage: 'saving' | 'analyzing' }
+    | {
+        status: 'done'
+        result: ICreatedAnalysis
+        duplicate: boolean
+        diagnostics: NewsDiagnostic[]
+      }
+    | { status: 'error'; message: string; demo: boolean }
+  )
 
 export interface AnalysisState {
   /**
@@ -34,22 +53,43 @@ const analysisSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(runAnalysis.pending, (state, action) => {
-        const { companyId, title } = action.meta.arg
-        state.byCompany[companyId] = { status: 'running', title }
+        const { companyId, title, newsKey } = action.meta.arg
+        const newsId =
+          'newsId' in action.meta.arg ? action.meta.arg.newsId : null
+        state.byCompany[companyId] = {
+          status: 'running',
+          stage: newsId === null ? 'saving' : 'analyzing',
+          title,
+          newsId,
+          newsKey,
+        }
+      })
+      .addCase(analysisNewsSaved, (state, action) => {
+        const run = state.byCompany[action.payload.companyId]
+        if (run?.status !== 'running') return
+        run.stage = 'analyzing'
+        run.newsId = action.payload.newsId
       })
       .addCase(runAnalysis.fulfilled, (state, action) => {
-        const { companyId, title } = action.meta.arg
+        const { companyId, title, newsKey } = action.meta.arg
+        const { result, newsId, duplicate, diagnostics } = action.payload
         state.byCompany[companyId] = {
           status: 'done',
           title,
-          result: action.payload,
+          newsId,
+          newsKey,
+          result,
+          duplicate,
+          diagnostics,
         }
       })
       .addCase(runAnalysis.rejected, (state, action) => {
-        const { companyId, title } = action.meta.arg
+        const { companyId, title, newsKey } = action.meta.arg
         state.byCompany[companyId] = {
           status: 'error',
           title,
+          newsKey,
+          newsId: action.payload?.newsId ?? null,
           message:
             action.payload?.message ?? 'Не удалось проанализировать новость',
           demo: action.payload?.demo ?? false,

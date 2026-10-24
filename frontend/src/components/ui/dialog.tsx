@@ -17,13 +17,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-32px)] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-3xl bg-white p-7 shadow-[0_24px_64px_rgba(18,19,22,0.2)] focus:outline-none',
+        'fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-32px)] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-3xl bg-white p-5 md:p-7 shadow-[0_24px_64px_rgba(18,19,22,0.2)] focus:outline-none',
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-surface-page">
+      <DialogPrimitive.Close className="absolute right-3 top-3 flex sm:right-5 sm:top-5 h-8 w-8 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-surface-page">
         <X className="h-5 w-5" />
         <span className="sr-only">Закрыть</span>
       </DialogPrimitive.Close>
@@ -56,13 +56,19 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
-/** Кнопки окна — у правого края, одинаковый отступ во всех диалогах. */
+/**
+ * Кнопки окна — у правого края, одинаковый отступ во всех диалогах. На
+ * узком экране — во всю ширину поровну: по ним проще попасть пальцем.
+ */
 const DialogFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn('flex flex-wrap justify-end gap-3 pt-1', className)}
+    className={cn(
+      'flex flex-wrap justify-end gap-3 pt-1 [&>*]:flex-1 sm:[&>*]:flex-none',
+      className
+    )}
     {...props}
   />
 )

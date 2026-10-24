@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Gift, LayoutGrid, Plus } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -39,15 +40,17 @@ const MenuItem = ({ item, active }: { item: SidebarItem; active: boolean }) => {
 }
 
 /**
- * Левое меню Альфа-Бизнеса по статье Альфы о редизайне: светлое, тонкий
+ * Меню Альфа-Бизнеса по статье Альфы о редизайне: светлое, тонкий
  * разделитель, сверху базовые пункты, ниже «Мои сервисы», внизу витрины.
+ * Одно и то же меню — слева на десктопе и в выдвижной панели на телефоне;
+ * footer — дополнительные пункты панели (аккаунт, выход).
  */
-const AlfaSidebar = () => {
+export const SidebarNav = ({ footer }: { footer?: ReactNode }) => {
   const { pathname } = useLocation()
   const pulseActive = pathname.startsWith('/pulse')
 
   return (
-    <aside className="sticky top-0 hidden h-screen flex-col gap-0.5 overflow-y-auto border-r border-line-strong px-4 py-5 lg:flex">
+    <>
       <Link to="/" className="flex items-center gap-2.5 px-2 pb-[18px] pt-1">
         <AlfaLogo />
         <span className="text-lg font-bold tracking-[-0.01em]">
@@ -95,6 +98,8 @@ const AlfaSidebar = () => {
 
       <div className="min-h-6 flex-1" />
 
+      {footer}
+
       <div className="flex flex-col gap-2 border-t border-line pt-3">
         <DemoStub
           label="Кэшбэк и привилегии"
@@ -115,8 +120,15 @@ const AlfaSidebar = () => {
           Все сервисы и продукты
         </DemoStub>
       </div>
-    </aside>
+    </>
   )
 }
+
+/** Левое меню на десктопе; на узком экране — в выдвижной панели шапки. */
+const AlfaSidebar = () => (
+  <aside className="sticky top-0 hidden h-screen flex-col gap-0.5 overflow-y-auto border-r border-line-strong px-4 py-5 lg:flex">
+    <SidebarNav />
+  </aside>
+)
 
 export default AlfaSidebar

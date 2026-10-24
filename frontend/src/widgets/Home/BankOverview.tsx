@@ -31,17 +31,20 @@ const QUICK_ACTIONS = [
  */
 const INFO_DIM = 'opacity-75'
 
-/** Быстрые действия банка — в прототипе не работают. */
+/**
+ * Быстрые действия банка — в прототипе не работают. На узком экране —
+ * плитки «значок над подписью», как в мобильном банке; с lg — строкой.
+ */
 export const QuickActions = () => (
-  <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+  <div className="grid grid-cols-5 gap-2 md:gap-3">
     {QUICK_ACTIONS.map(({ label, icon: Icon }) => (
       <DemoStub
         key={label}
         label={label}
-        className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-ink-2"
+        className="flex min-w-0 flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-center text-ink-2 lg:flex-row lg:gap-3 lg:px-4 lg:py-3.5 lg:text-left"
       >
         <Icon className="h-5 w-5 shrink-0" strokeWidth={1.8} />
-        <span className="truncate text-[15px] font-medium text-ink">
+        <span className="line-clamp-2 text-xs font-medium leading-4 text-ink sm:text-[13px] lg:line-clamp-1 lg:text-[15px] lg:leading-normal">
           {label}
         </span>
       </DemoStub>
@@ -115,13 +118,21 @@ export const OperationsHistory = () => (
       {OPERATIONS.map((operation) => (
         <div
           key={operation.counterparty}
-          className="grid grid-cols-[80px_minmax(0,1fr)_200px] gap-4 border-t border-line py-3 text-[15px]"
+          className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-t border-line py-3 text-[15px] md:grid-cols-[80px_minmax(0,1fr)_200px] md:gap-4"
         >
-          <span className="text-ink-3">{operation.date}</span>
-          <span className="truncate font-medium">{operation.counterparty}</span>
+          <span className="hidden text-ink-3 md:block">{operation.date}</span>
+          {/* На узком экране дата — под контрагентом, сумма справа. */}
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate font-medium">
+              {operation.counterparty}
+            </span>
+            <span className="text-[13px] text-ink-3 md:hidden">
+              {operation.date}
+            </span>
+          </span>
           <span
             className={cn(
-              'text-right font-semibold',
+              'whitespace-nowrap text-right font-semibold',
               operation.income && 'text-tone-opp-fg'
             )}
           >

@@ -14,6 +14,9 @@ import {
 const SESSION_KEY = 'demo_session'
 const USERNAME_KEY = 'demo_username'
 
+/** Логин сохранённой сессии — по нему восстанавливаются компании. */
+export const storedUsername = () => storageGet(USERNAME_KEY)
+
 export interface AuthState {
   isAuthenticated: boolean
   /** Логин, под которым вошли, — пока единственные данные о пользователе. */

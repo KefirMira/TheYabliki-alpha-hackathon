@@ -45,7 +45,10 @@ const NotificationsBell = () => {
           {count}
         </span>
       </PopoverTrigger>
-      <PopoverContent className="flex w-[400px] flex-col">
+      <PopoverContent
+        collisionPadding={16}
+        className="flex w-[min(400px,calc(100vw-32px))] flex-col"
+      >
         <div className="flex items-center justify-between px-3 pb-2 pt-3">
           <span className="text-[17px] font-semibold">Уведомления</span>
           <DemoStub label="Прочитать все" className="text-[13px] text-ink-3">

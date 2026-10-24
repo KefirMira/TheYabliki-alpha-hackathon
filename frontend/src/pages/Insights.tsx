@@ -1,15 +1,25 @@
-import { ArrowRight, ArrowUpDown, Bookmark, Loader2, Plus } from 'lucide-react'
+import { useState } from 'react'
+import {
+  ArrowRight,
+  ArrowUpDown,
+  Bookmark,
+  Loader2,
+  Plus,
+  RotateCw,
+} from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
+import { useFavorites } from '@/hooks/useFavorites'
 import { cn } from '@/lib/utils'
 import { FEATURES } from '@/shared/constants/features'
 import Segmented from '@/shared/ui/Segmented'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
 import type { PulseKind } from '@/store/models/IPulse'
-import { toggleFavorite } from '@/store/reducers/PulseSlice'
-import { selectPulseInsights } from '@/store/selectors/pulse'
+import { selectHiddenIds, selectPulseInsights } from '@/store/selectors/pulse'
 import { getInsightsFeed } from '@/store/service/Insights/getInsightsFeed'
+import { refreshInsightsFeed } from '@/store/service/Insights/refreshInsightsFeed'
 import {
   FeedMessage,
   FeedSkeleton,
@@ -41,7 +51,8 @@ const Insights = () => {
   const dispatch = useAppDispatch()
   const [params, setParams] = useSearchParams()
   const companyId = useAppSelector((state) => state.company.currentCompanyId)
-  const favorites = useAppSelector((state) => state.pulse.favorites)
+  const { favorites, toggle: toggleFavorite, restoreAllHidden } = useFavorites()
+  const hiddenCount = useAppSelector(selectHiddenIds).length
   const {
     loadingList,
     loadingMore,
@@ -49,7 +60,10 @@ const Insights = () => {
     error,
     errorMore,
     nextCursor,
+    newIds,
+    refreshedAt,
   } = useAppSelector((state) => state.insights)
+  const [refreshing, setRefreshing] = useState(false)
   const insights = useAppSelector(selectPulseInsights)
 
   const filters = filtersFromParams(params)
@@ -66,6 +80,15 @@ const Insights = () => {
 
   const reload = () => {
     if (companyId) dispatch(getInsightsFeed({ companyId }))
+  }
+
+  // Ручная сверка с сервером — то же, что фоновое обновление раз в минуту.
+  const refresh = () => {
+    if (!companyId || refreshing) return
+    setRefreshing(true)
+    dispatch(refreshInsightsFeed({ companyId })).finally(() =>
+      setRefreshing(false)
+    )
   }
 
   const loadMore = () => {
@@ -119,7 +142,7 @@ const Insights = () => {
             key={insight.id}
             insight={insight}
             favorite={favorites.includes(insight.id)}
-            onToggleFavorite={(id) => dispatch(toggleFavorite(id))}
+            onToggleFavorite={toggleFavorite}
           />
         ))}
       </div>
@@ -140,7 +163,11 @@ const Insights = () => {
             count: counts[type],
           }))}
         />
-        <Button asChild className="h-auto px-3.5 py-[9px] text-sm">
+        {/* На телефоне — кнопка во всю ширину. */}
+        <Button
+          asChild
+          className="h-auto w-full px-3.5 py-[9px] text-sm sm:w-auto"
+        >
           <Link to="/pulse/insights/new">
             <Plus />
             Проанализировать новость
@@ -181,10 +208,46 @@ const Insights = () => {
       </div>
 
       {companyId && isInitialized && !error && (
-        <p className="text-sm text-ink-2">
-          Найдено: <b>{items.length}</b>
-          {nextCursor && ' · показаны загруженные'}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-ink-2">
+          <p>
+            Найдено: <b>{items.length}</b>
+            {nextCursor && ' · показаны загруженные'}
+            {newIds.length > 0 && (
+              <span className="font-semibold text-tone-info-fg">
+                {' '}
+                · новых: {newIds.length}
+              </span>
+            )}
+            {hiddenCount > 0 && (
+              <>
+                {' · скрыто «Не относится к нам»: '}
+                {hiddenCount}{' '}
+                <button
+                  type="button"
+                  onClick={restoreAllHidden}
+                  className="font-medium text-ink underline-offset-2 hover:underline"
+                >
+                  Вернуть
+                </button>
+              </>
+            )}
+          </p>
+          <span className="flex items-center gap-2 text-ink-3">
+            {refreshedAt &&
+              `Обновлено в ${format(parseISO(refreshedAt), 'HH:mm')}`}
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-[5px] font-medium text-ink transition-colors hover:bg-surface-chip disabled:opacity-60"
+            >
+              <RotateCw
+                className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')}
+              />
+              Обновить
+            </button>
+          </span>
+        </div>
       )}
 
       {renderFeed()}

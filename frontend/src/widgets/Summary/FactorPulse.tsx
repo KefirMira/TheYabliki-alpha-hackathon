@@ -58,13 +58,13 @@ const FactorPulse = () => (
         <Link
           key={topic.factor}
           to={`/pulse/insights?factor=${topic.factor}`}
-          className="-mx-3 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_180px_20px] items-center gap-4 rounded-xl border-t border-line-soft px-3 py-[9px] transition-colors hover:bg-surface-page"
+          className="-mx-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-xl md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_180px_20px] md:gap-4 border-t border-line-soft px-3 py-[9px] transition-colors hover:bg-surface-page"
         >
           <span className="flex min-w-0 items-center gap-3">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-surface-page text-ink-2">
               <Icon className="h-4 w-4" />
             </span>
-            <span className="whitespace-nowrap text-[15px] font-semibold">
+            <span className="truncate text-[15px] font-semibold md:whitespace-nowrap">
               {topic.title}
             </span>
             {topic.isNew && (
@@ -73,7 +73,8 @@ const FactorPulse = () => (
               </Tag>
             )}
           </span>
-          <span className="truncate text-sm text-ink-2">
+          {/* На узком экране сводка по инсайтам — второй строкой. */}
+          <span className="order-last col-span-2 truncate text-sm text-ink-2 md:order-none md:col-span-1">
             <b className="font-semibold text-ink">
               {plural(insights.length, ['инсайт', 'инсайта', 'инсайтов'])}
             </b>{' '}
@@ -92,7 +93,7 @@ const FactorPulse = () => (
               {IMPACT_LABEL[level]}
             </span>
           </span>
-          <ChevronRight className="h-4 w-4 text-ink-4" />
+          <ChevronRight className="hidden h-4 w-4 text-ink-4 md:block" />
         </Link>
       )
     })}

@@ -77,7 +77,7 @@ const Segmented = <T extends string>({
       role="tablist"
       aria-label={label}
       className={cn(
-        'relative gap-0.5 rounded-xl bg-surface-chip p-[3px]',
+        'relative max-w-full gap-0.5 rounded-xl bg-surface-chip p-[3px]',
         fill ? 'flex w-full' : 'inline-flex',
         className
       )}

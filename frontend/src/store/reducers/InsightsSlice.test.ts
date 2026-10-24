@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import type { IInsightFeedItem } from '../models/IInsight'
 import { getInsightsFeed } from '../service/Insights/getInsightsFeed'
+import { refreshInsightsFeed } from '../service/Insights/refreshInsightsFeed'
 import { setCurrentCompany } from './CompanySlice'
-import reducer, { type InsightsState } from './InsightsSlice'
+import reducer, { type InsightsState, markInsightSeen } from './InsightsSlice'
 
 const item = (id: number): IInsightFeedItem => ({
   insight_id: id,
@@ -101,5 +102,138 @@ describe('InsightsSlice', () => {
     expect(state.items).toHaveLength(1)
     expect(state.errorMore).toBe('Сеть недоступна')
     expect(state.error).toBeUndefined()
+  })
+})
+
+const refreshStart = (requestId: string, companyId = 'DEMO-001') =>
+  refreshInsightsFeed.pending(requestId, { companyId })
+
+interface RefreshOptions {
+  reachedKnown?: boolean
+  nextCursor?: string | null
+}
+
+/** Ответ обновления: по умолчанию дошёл до уже загруженного инсайта. */
+const refreshDone = (
+  requestId: string,
+  items: IInsightFeedItem[],
+  companyId = 'DEMO-001',
+  { reachedKnown = true, nextCursor = null }: RefreshOptions = {}
+) =>
+  refreshInsightsFeed.fulfilled(
+    { items, reachedKnown, nextCursor },
+    requestId,
+    { companyId }
+  )
+
+/** Обновление целиком: запуск и ответ. */
+const refreshed = (
+  items: IInsightFeedItem[],
+  companyId = 'DEMO-001',
+  options: RefreshOptions = {}
+) => [
+  refreshStart('bg', companyId),
+  refreshDone('bg', items, companyId, options),
+]
+
+describe('InsightsSlice: фоновое обновление', () => {
+  const loaded = () => [start('r1'), done('r1', [item(2), item(1)], 'c1')]
+
+  it('дописывает только новые инсайты сверху и помечает их новыми', () => {
+    const state = run(...loaded(), ...refreshed([item(4), item(3)]))
+
+    expect(state.items.map((i) => i.insight_id)).toEqual([4, 3, 2, 1])
+    expect(state.newIds).toEqual([4, 3])
+    // Курсор догрузки не сбрасывается.
+    expect(state.nextCursor).toBe('c1')
+  })
+
+  it('открытый инсайт перестаёт быть новым', () => {
+    const state = run(...loaded(), ...refreshed([item(3)]), markInsightSeen(3))
+
+    expect(state.newIds).toEqual([])
+  })
+
+  it('ответ по другой компании и во время загрузки отбрасывается', () => {
+    const otherCompany = run(...loaded(), ...refreshed([item(9)], 'DEMO-002'))
+    const whileLoading = run(start('r1'), ...refreshed([item(9)]))
+
+    expect(otherCompany.items.map((i) => i.insight_id)).toEqual([2, 1])
+    expect(whileLoading.items).toEqual([])
+  })
+
+  it('новая загрузка первой страницы снимает пометки', () => {
+    const state = run(
+      ...loaded(),
+      ...refreshed([item(3)]),
+      start('r2'),
+      done('r2', [item(3), item(2), item(1)], null)
+    )
+
+    expect(state.newIds).toEqual([])
+  })
+
+  it('пустая лента: новые страницы и курсор — «Показать ещё» на месте', () => {
+    // 51 новый инсайт: обновление принесло первую страницу и курсор.
+    const fresh = Array.from({ length: 50 }, (_, index) => item(51 - index))
+    const state = run(
+      start('r1'),
+      done('r1', [], null),
+      ...refreshed(fresh, 'DEMO-001', { reachedKnown: false, nextCursor: 'c2' })
+    )
+
+    expect(state.items).toHaveLength(50)
+    expect(state.nextCursor).toBe('c2')
+    expect(state.newIds).toHaveLength(50)
+  })
+
+  it('не дошли до загруженного — лента заменяется, курсор продолжает её', () => {
+    const state = run(
+      ...loaded(),
+      ...refreshed([item(9), item(8)], 'DEMO-001', {
+        reachedKnown: false,
+        nextCursor: 'c9',
+      })
+    )
+
+    expect(state.items.map((i) => i.insight_id)).toEqual([9, 8])
+    expect(state.nextCursor).toBe('c9')
+  })
+
+  it('поздний ответ раннего обновления не затирает свежую ленту', () => {
+    const replace = { reachedKnown: false, nextCursor: null }
+    const state = run(
+      ...loaded(),
+      // Фоновое обновление и «Обновить» запущены одно за другим.
+      refreshStart('old'),
+      refreshStart('new'),
+      refreshDone('new', [item(2), item(1)], 'DEMO-001', replace),
+      refreshDone('old', [item(1)], 'DEMO-001', replace)
+    )
+
+    expect(state.items.map((i) => i.insight_id)).toEqual([2, 1])
+  })
+
+  it('загрузка первой страницы отменяет идущее обновление', () => {
+    const state = run(
+      ...loaded(),
+      refreshStart('bg'),
+      start('r2'),
+      done('r2', [item(3), item(2), item(1)], null),
+      refreshDone('bg', [item(1)], 'DEMO-001', { reachedKnown: false })
+    )
+
+    expect(state.items.map((i) => i.insight_id)).toEqual([3, 2, 1])
+  })
+
+  it('неудачное обновление отмечается — для проверки готовности сервиса', () => {
+    const state = run(
+      ...loaded(),
+      refreshStart('bg'),
+      refreshInsightsFeed.rejected(null, 'bg', { companyId: 'DEMO-001' })
+    )
+
+    expect(state.refreshFailedAt).not.toBeNull()
+    expect(state.items).toHaveLength(2)
   })
 })

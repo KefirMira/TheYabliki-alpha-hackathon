@@ -44,11 +44,11 @@ const PulseWidget = () => {
   })()
 
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-5 rounded-3xl bg-white px-6 py-5">
+    <section className="grid grid-cols-1 items-center gap-x-6 gap-y-4 rounded-3xl bg-white px-5 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-y-5 sm:px-6">
       <Link to="/pulse/summary" className="flex min-w-0 items-center gap-3.5">
         <PulseLogo />
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex items-center gap-2.5">
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span className="text-[17px] font-bold">Пульс бизнеса</span>
             {all.length > 0 && (
               <span className="flex h-5 items-center rounded-full bg-brand px-[7px] text-[11px] font-bold text-white">
@@ -60,12 +60,17 @@ const PulseWidget = () => {
         </span>
       </Link>
 
-      <Button onClick={() => navigate('/pulse/summary')}>Открыть Пульс</Button>
+      <Button
+        onClick={() => navigate('/pulse/summary')}
+        className="w-full sm:w-auto"
+      >
+        Открыть Пульс
+      </Button>
 
       {insights.length > 0 && (
         <div
           className={cn(
-            'col-span-full -mx-5 grid border-t border-line pt-4',
+            'col-span-full -mx-5 grid border-t border-line pt-4 sm:-mx-6',
             COLUMNS[insights.length]
           )}
         >
@@ -74,7 +79,8 @@ const PulseWidget = () => {
               key={insight.id}
               to={`/pulse/insights/${insight.id}`}
               className={cn(
-                'flex min-w-0 flex-col gap-2 px-5 py-1 transition-opacity hover:opacity-80',
+                // На узком экране инсайты — столбиком через разделитель.
+                'flex min-w-0 flex-col gap-2 border-t border-line px-5 py-3 transition-opacity first:border-t-0 first:pt-1 hover:opacity-80 sm:px-6 md:border-t-0 md:py-1',
                 index < insights.length - 1 && 'md:border-r md:border-line'
               )}
             >

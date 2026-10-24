@@ -4,7 +4,8 @@ import {
   SERVER_UNREACHABLE_MESSAGE,
 } from './apiErrors'
 
-const BASE = () => import.meta.env.VITE_BASE_API
+// Адрес бэкенда из .env. Без него запросы уйдут на адрес самого фронта.
+const BASE = () => import.meta.env.VITE_BASE_API ?? ''
 /** Таймаут по умолчанию; анализ новости через LLM передаёт свой. */
 export const DEFAULT_TIMEOUT_MS = 20000
 

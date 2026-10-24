@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:data": "vite --mode data",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "typecheck": "tsc -b --noEmit",
@@ -47,6 +48,7 @@
     "date-fns": "^3.6.0",
     "lucide-react": "^0.462.0",
     "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.61.1",
     "react-redux": "^9.2.0",

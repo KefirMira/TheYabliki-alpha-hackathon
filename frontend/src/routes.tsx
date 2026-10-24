@@ -20,6 +20,7 @@ const CompanyProfile = lazy(() => import('./pages/CompanyProfile'))
 const CompanyContext = lazy(() => import('./pages/CompanyContext'))
 const PulseSettings = lazy(() => import('./pages/PulseSettings'))
 const Account = lazy(() => import('./pages/Account'))
+const ServiceStatus = lazy(() => import('./pages/ServiceStatus'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 /**
@@ -65,6 +66,7 @@ export const AppRoutes = () => (
           <Route path="context" element={<CompanyContext />} />
           <Route path="settings" element={<PulseSettings />} />
           <Route path="account" element={<Account />} />
+          <Route path="status" element={<ServiceStatus />} />
         </Route>
       </Route>
 

@@ -1,4 +1,5 @@
 import {
+  Activity,
   ArrowLeftRight,
   Building2,
   CircleUserRound,
@@ -92,5 +93,11 @@ export const COMPANY_MENU: readonly SidebarItem[] = [
     label: 'Аккаунт и безопасность',
     icon: CircleUserRound,
     path: '/pulse/company/account',
+  },
+  {
+    key: 'status',
+    label: 'Состояние сервиса',
+    icon: Activity,
+    path: '/pulse/company/status',
   },
 ]

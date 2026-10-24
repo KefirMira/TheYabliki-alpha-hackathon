@@ -27,7 +27,7 @@ const DashedArrow = () => (
  * ввода и любых учётных систем; подключение появится позже.
  */
 const ContextApiCard = () => (
-  <Card className="grid gap-6 p-7 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+  <Card className="grid gap-6 p-5 md:p-7 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
     <div className="flex flex-col justify-center gap-3">
       <div className="flex items-center gap-2.5">
         <h2 className="text-[17px] font-semibold leading-6">

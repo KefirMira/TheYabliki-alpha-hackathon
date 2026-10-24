@@ -82,7 +82,7 @@ const PulseSettings = () => {
               <select
                 value={time}
                 onChange={(event) => setTime(event.target.value)}
-                className="h-12 w-[174px] appearance-none rounded-xl bg-surface-page pl-4 pr-10 text-[15px] outline-none focus:shadow-[inset_0_0_0_1.5px_#121316]"
+                className="h-12 w-[174px] appearance-none rounded-xl bg-surface-page pl-4 pr-10 text-base outline-none md:text-[15px] focus:shadow-[inset_0_0_0_1.5px_#121316]"
               >
                 {DIGEST_TIMES.map((option) => (
                   <option key={option}>{option}</option>

@@ -116,7 +116,7 @@ const ContextFiles = () => {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          'flex flex-col items-center gap-2.5 rounded-2xl border-[1.5px] border-dashed p-7 text-center transition-colors',
+          'flex flex-col items-center gap-2.5 rounded-2xl border-[1.5px] border-dashed p-5 md:p-7 text-center transition-colors',
           dragOver
             ? 'border-ink bg-white'
             : 'border-line-dashed bg-surface-drop hover:border-ink-4'
