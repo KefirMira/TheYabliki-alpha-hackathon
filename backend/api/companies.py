@@ -1,3 +1,4 @@
+from api.auth import company_read, current_actor, AUTH_ERRORS
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +9,7 @@ from schemas.http_docs import errors
 from services.company_profile_service import CompanyNotFound, CompanyProfileService
 
 
-router = APIRouter(prefix="/api/companies", tags=["companies"])
+router = APIRouter(prefix="/api/companies", tags=["companies"], dependencies=[Depends(company_read)], responses=AUTH_ERRORS)
 
 
 @router.get("/{source_id}", response_model=CompanyProfileResponse, responses=errors(**{"404": "COMPANY_NOT_FOUND", "503": "DATABASE_UNAVAILABLE"}),

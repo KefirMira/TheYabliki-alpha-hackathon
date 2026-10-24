@@ -1,5 +1,8 @@
 """Commit RUNNING first, release the DB during AI, commit result atomically."""
 
+from repositories.auth_repository import AuthRepository
+from services.auth_service import denied
+
 import asyncio
 from dataclasses import dataclass
 
@@ -60,8 +63,9 @@ async def default_analyzer(*, news, company):
 
 class CompanyAnalysisService:
     def __init__(self, sessions, analyzer=default_analyzer, evidence_repository=EvidenceRepository,
-                 context_loader=load_company_context):
+                 context_loader=load_company_context, actor_id=None):
         self.sessions = sessions
+        self.actor_id = actor_id
         self.analyzer = analyzer
         self.evidence_repository = evidence_repository
         self.context_loader = context_loader
@@ -78,20 +82,28 @@ class CompanyAnalysisService:
             raise ValueError("News text must not be blank")
         async with self.sessions() as session:
             async with session.begin():
+                if self.actor_id is not None and not await AuthRepository(session).company_allowed(self.actor_id, source_id, True):
+                    raise denied()
                 record = await CompanyRepository(session).get_by_source_id(source_id)
                 if record is None:
                     raise CompanyNotFound(source_id)
                 company = await self._profile_for_analysis(session, record)
                 news_id = await NewsRepository(session).create_manual(news, title)
+                if self.actor_id is not None:
+                    await AuthRepository(session).grant_news(self.actor_id, news_id)
                 run_id = await AnalysisRunRepository(session).start(record.id)
         return await self._execute(source_id, news, record, news_id, run_id, company=company)
 
     async def analyze_saved(self, source_id: str, news_id: int) -> SavedAnalysis:
         async with self.sessions() as session:
             async with session.begin():
+                if self.actor_id is not None and not await AuthRepository(session).company_allowed(self.actor_id, source_id, True):
+                    raise denied()
                 record = await CompanyRepository(session).get_by_source_id(source_id)
                 if record is None:
                     raise CompanyNotFound(source_id)
+                if self.actor_id is not None and not await AuthRepository(session).news_allowed(self.actor_id, news_id):
+                    raise denied()
                 stored = await NewsRepository(session).get_by_id(news_id)
                 if stored is None:
                     raise NewsNotFound(news_id)

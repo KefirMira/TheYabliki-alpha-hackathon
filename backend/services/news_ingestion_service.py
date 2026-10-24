@@ -1,3 +1,5 @@
+from repositories.auth_repository import AuthRepository
+from services.auth_service import denied
 from schemas.news import IngestedNews, NewsMetadata
 from repositories.news_repository import NewsRepository
 
@@ -35,8 +37,9 @@ def duplicate_result(rows, incoming):
 
 
 class NewsIngestionService:
-    def __init__(self, sessions):
+    def __init__(self, sessions, actor_id=None):
         self.sessions = sessions
+        self.actor_id = actor_id
 
     async def ingest(self, incoming):
         async with self.sessions() as session:
@@ -44,14 +47,24 @@ class NewsIngestionService:
                 repository = NewsRepository(session)
                 rows = await repository.find_identities(incoming)
                 if rows:
+                    if self.actor_id is not None:
+                        for row in rows:
+                            if not await AuthRepository(session).news_allowed(self.actor_id, row['id']):
+                                raise denied()
                     return duplicate_result(rows, incoming)
                 news_id = await repository.insert_external(incoming)
                 if news_id is not None:
+                    if self.actor_id is not None:
+                        await AuthRepository(session).grant_news(self.actor_id, news_id)
                     stored = await repository.get_by_id(news_id)
                     return IngestedNews(news_id=news_id, created=True, duplicate=False,
                                         diagnostics=[], news=NewsMetadata.model_validate(stored))
                 # A new READ COMMITTED statement sees the concurrent committed row.
                 rows = await repository.find_identities(incoming)
                 if rows:
+                    if self.actor_id is not None:
+                        for row in rows:
+                            if not await AuthRepository(session).news_allowed(self.actor_id, row['id']):
+                                raise denied()
                     return duplicate_result(rows, incoming)
                 raise NewsIngestionRetry()  # One INSERT and one re-read, never an unbounded loop.

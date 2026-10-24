@@ -17,3 +17,7 @@
 
 !analysis_admin.py
 !news_matching_admin.py
+
+!auth_demo.py
+!company_import/
+!company_import/*.py

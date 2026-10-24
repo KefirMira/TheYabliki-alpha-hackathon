@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, DateTime, String, and_, column, or_, select, table, tuple_
+from sqlalchemy import text, BigInteger, DateTime, String, and_, column, or_, select, table, tuple_
 from sqlalchemy.dialects.postgresql import JSONB
 
 from repositories.analysis_tables import analysis_runs, insight_evidence, news_articles
@@ -32,13 +32,19 @@ def feed_columns():
 
 
 class InsightRepository:
-    def __init__(self, session):
+    def __init__(self, session, actor_id=None):
         self.session = session
+        self.actor_id = actor_id
+
+    def access(self):
+        if self.actor_id is None:
+            return text('TRUE')  # Trusted internal callers only; HTTP always supplies an authenticated UUID.
+        return text('EXISTS (SELECT 1 FROM public.auth_news_grants g WHERE g.news_id = public.company_news_analyses.news_id AND g.user_id = :auth_user)').bindparams(auth_user=self.actor_id)
 
     async def list_completed(self, company_id, limit, position=None):
         query = select(*feed_columns()).select_from(
             insights.join(analysis_runs, insights.c.analysis_run_id == analysis_runs.c.id)
-        ).where(completed_scope(company_id))
+        ).where(completed_scope(company_id), self.access())
         if position is not None:
             query = query.where(tuple_(insights.c.created_at, insights.c.id) < tuple_(position.created_at, position.id))
         query = query.order_by(insights.c.created_at.desc(), insights.c.id.desc()).limit(limit + 1)
@@ -53,7 +59,7 @@ class InsightRepository:
         ).select_from(
             insights.join(analysis_runs, insights.c.analysis_run_id == analysis_runs.c.id)
             .join(news_articles, insights.c.news_id == news_articles.c.id)
-        ).where(completed_scope(company_id), insights.c.id == insight_id))
+        ).where(completed_scope(company_id), self.access(), insights.c.id == insight_id))
         return result.mappings().one_or_none()
 
     async def get_evidence(self, company_id, insight_id):
@@ -65,5 +71,5 @@ class InsightRepository:
         ).select_from(
             insight_evidence.join(insights, insight_evidence.c.company_news_analysis_id == insights.c.id)
             .join(analysis_runs, insights.c.analysis_run_id == analysis_runs.c.id)
-        ).where(completed_scope(company_id), insights.c.id == insight_id).order_by(insight_evidence.c.id))
+        ).where(completed_scope(company_id), self.access(), insights.c.id == insight_id).order_by(insight_evidence.c.id))
         return list(result.mappings().all())

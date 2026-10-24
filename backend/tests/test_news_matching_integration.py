@@ -98,6 +98,7 @@ def test_ready_requires_006_readonly(identity_dsn, monkeypatch, mutation):
     monkeypatch.setenv('AI_MODE', 'demo')
     async def scenario():
         async with job_database(identity_dsn) as (_, sessions, c, news):
+            await c.execute((DATABASE_ROOT/'migrations/007_auth_access.sql').read_text(encoding='utf-8'))
             if mutation != 'before_006':
                 await c.execute(MIGRATION.read_text(encoding='utf-8'))
             if mutation and mutation != 'before_006':

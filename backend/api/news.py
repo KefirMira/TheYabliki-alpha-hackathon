@@ -1,3 +1,4 @@
+from api.auth import current_actor, AUTH_ERRORS
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -9,11 +10,11 @@ from schemas.http_docs import APIError
 from services.news_ingestion_service import NewsIdentityConflict, NewsIngestionRetry, NewsIngestionService
 from settings import execution_mode
 
-router = APIRouter(prefix="/api/news", tags=["news ingestion"])
+router = APIRouter(prefix="/api/news", tags=["news ingestion"], dependencies=[Depends(current_actor)], responses=AUTH_ERRORS)
 
 
-def get_news_service(sessions=Depends(get_session_factory)):
-    return NewsIngestionService(sessions)
+def get_news_service(sessions=Depends(get_session_factory), actor=Depends(current_actor)):
+    return NewsIngestionService(sessions, actor_id=actor.user_id)
 
 
 def demo_policy(news: ExternalNewsInput):

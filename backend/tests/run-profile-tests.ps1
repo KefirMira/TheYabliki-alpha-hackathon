@@ -12,7 +12,7 @@ if (-not (Test-Path -LiteralPath $DatabaseRoot -PathType Container)) {
     throw 'Pass -DatabaseRoot <PR-2-checkout/database>; database infrastructure is a separate dependency'
 }
 $DatabaseRoot = (Resolve-Path -LiteralPath $DatabaseRoot).Path
-foreach ($file in @('compose.test.yml','schema.sql','migrations/002_pulse_features.sql','migrations/003_integrity.sql','migrations/004_news_external_identity.sql','migrations/005_saved_news_analysis_jobs.sql','migrations/006_news_company_matching.sql','tests/fixtures/base.sql','tests/fingerprint.sql')) {
+foreach ($file in @('compose.test.yml','schema.sql','migrations/002_pulse_features.sql','migrations/003_integrity.sql','migrations/004_news_external_identity.sql','migrations/005_saved_news_analysis_jobs.sql','migrations/006_news_company_matching.sql','migrations/007_auth_access.sql','tests/fixtures/base.sql','tests/fingerprint.sql')) {
     if (-not (Test-Path -LiteralPath (Join-Path $DatabaseRoot $file) -PathType Leaf)) {
         throw "Missing database dependency: $file"
     }
@@ -59,7 +59,9 @@ try {
         Sql '/audit/migrations/005_saved_news_analysis_jobs.sql' | Out-Null
     }
     Sql '/audit/migrations/006_news_company_matching.sql' | Out-Null
+    Sql '/audit/migrations/007_auth_access.sql' | Out-Null
     Sql '/audit/migrations/006_news_company_matching.sql' | Out-Null
+    Sql '/audit/migrations/007_auth_access.sql' | Out-Null
     Sql '/audit/tests/fixtures/base.sql' | Out-Null
     $before = Compose exec -T postgres psql -X -At -U audit_user -d theyabliki_test -f /audit/tests/fingerprint.sql
     $env:PROFILE_TEST_DATABASE_URL = "postgresql+asyncpg://audit_user:$($env:DB_TEST_PASSWORD)@127.0.0.1:$($env:DB_TEST_PORT)/theyabliki_test"

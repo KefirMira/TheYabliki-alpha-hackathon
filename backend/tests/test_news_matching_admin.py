@@ -41,5 +41,5 @@ def test_cli_configuration_error_is_sanitized(monkeypatch, capsys):
 
 def test_matching_is_not_a_public_route():
     from main import app
-    assert len(app.openapi()['paths']) == 11
+    assert len(app.openapi()['paths']) == 14
     assert all('matching' not in path and 'match-runs' not in path for path in app.openapi()['paths'])

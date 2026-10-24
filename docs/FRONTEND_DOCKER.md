@@ -1,3 +1,5 @@
+> v1.22.0: backend API требует индивидуальной серверной сессии. Старый React demo-login не авторизует запросы; frontend ещё не адаптирован. Не вводите общий токен и не отключайте ACL. Миграция 007 нужна и для старого изолированного тома (restart её не применяет). Безопасное создание синтетических аккаунтов и ограничения: [AUTH_ACCESS.md](AUTH_ACCESS.md). Docker smoke теперь проверяет публичные endpoints, CORS и отказ анонимным business-запросам; авторизованные сценарии проверяются PostgreSQL auth-тестами.
+
 # Backend для frontend: Docker demo, v1.18.1
 
 Нужны Git и Docker Desktop (Linux containers) либо Docker Engine с Compose v2.

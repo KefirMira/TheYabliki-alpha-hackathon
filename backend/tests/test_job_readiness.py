@@ -21,6 +21,8 @@ def test_ready_requires_valid_005_readonly(identity_dsn,monkeypatch,mutation):
         async with job_database(identity_dsn) as (_,sessions,c,news):
             from test_news_matching_integration import MIGRATION
             await c.execute(MIGRATION.read_text(encoding='utf-8'))
+            from test_news_identity_migration import DATABASE_ROOT
+            await c.execute((DATABASE_ROOT/'migrations/007_auth_access.sql').read_text(encoding='utf-8'))
             if mutation:await c.execute(mutation)
             from contextlib import asynccontextmanager
             @asynccontextmanager

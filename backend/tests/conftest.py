@@ -18,6 +18,31 @@ def no_llm(monkeypatch):
     monkeypatch.setitem(sys.modules, "openai", None)
 
 
+@pytest.fixture(autouse=True)
+def legacy_http_contract_auth_boundary(request):
+    """Old domain tests isolate their pre-existing HTTP contract from authentication.
+
+    New test_auth_* tests never receive these overrides: they exercise real login,
+    session and ACL checks. No environment/configuration bypass exists in the app.
+    """
+    if request.path.name.startswith('test_auth_'):
+        yield
+        return
+    from types import SimpleNamespace
+    from main import app
+    from api.auth import current_actor, company_read, company_write, legacy_denied
+    keys = [current_actor, company_read, company_write, legacy_denied]
+    previous = dict(app.dependency_overrides)
+    actor = SimpleNamespace(user_id=None)
+    for key in keys:
+        app.dependency_overrides[key] = lambda: actor
+    yield
+    for key in keys:
+        app.dependency_overrides.pop(key, None)
+        if key in previous:
+            app.dependency_overrides[key] = previous[key]
+
+
 @pytest.fixture
 def test_database_url():
     url = os.environ.get("PROFILE_TEST_DATABASE_URL")

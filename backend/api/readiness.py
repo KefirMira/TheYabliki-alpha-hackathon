@@ -21,6 +21,7 @@ TABLES = (
     "company_insight_states", "insight_updates",
     "news_analysis_jobs", "news_analysis_attempts",
     "company_verified_names", "news_company_match_runs", "news_company_match_candidates",
+    "auth_users", "auth_sessions", "auth_user_companies", "auth_news_grants",
 )
 
 
@@ -39,7 +40,7 @@ def rag_ready() -> bool:
 
 @router.get("/ready", responses={200: {"model": ReadinessResponse},
     503: {"model": ReadinessResponse, "description": "Компоненты не готовы; без DDL и обращения к LLM"}},
-    description="18 таблиц; проверенные определения объектов 004–006. В demo требуется только БД; в full также RAG и конфигурация LLM (без запроса провайдеру).")
+    description="22 таблиц; проверенные определения объектов 004–006. В demo требуется только БД; в full также RAG и конфигурация LLM (без запроса провайдеру).")
 async def readiness(request: Request):
     checks = {
         "rag": await asyncio.to_thread(rag_ready),

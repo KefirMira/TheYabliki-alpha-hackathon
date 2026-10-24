@@ -1,3 +1,4 @@
+from api.auth import company_write, current_actor, AUTH_ERRORS
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -15,15 +16,15 @@ from repositories.news_analysis_job_repository import AnalysisConflict
 from services.company_context_service import CompanyContextExternalTransferBlocked
 
 
-router = APIRouter(prefix="/api/companies", tags=["company analyses"])
+router = APIRouter(prefix="/api/companies", tags=["company analyses"], dependencies=[Depends(company_write)], responses=AUTH_ERRORS)
 
 
 def get_analysis_analyzer():
     return default_analyzer
 
 
-def get_analysis_service(sessions=Depends(get_session_factory), analyzer=Depends(get_analysis_analyzer)):
-    return CompanyAnalysisService(sessions, analyzer)
+def get_analysis_service(sessions=Depends(get_session_factory), analyzer=Depends(get_analysis_analyzer), actor=Depends(current_actor)):
+    return CompanyAnalysisService(sessions, analyzer, actor_id=actor.user_id)
 
 
 @router.post("/{source_id}/analyses", response_model=CreatedCompanyAnalysis, status_code=201,

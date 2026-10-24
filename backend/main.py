@@ -20,6 +20,10 @@ from services.analysis_gateway import analyze_for_company, analyze_with_rag
 from api.runtime import require_ai_enabled
 from settings import execution_mode
 from schemas.http_docs import HealthResponse, RAGResponse, LegacyError, APIError, ValidationResponse
+from api.auth import router as auth_router, legacy_denied, AUTH_ERRORS
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.exception_handlers import request_validation_exception_handler
 
 
 # Настройки приложения
@@ -28,7 +32,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 execution_mode()  # Invalid modes must never silently enable paid analysis.
 
-app = FastAPI(title="Alfa Hack API", version="1.17.0", lifespan=database_lifespan)
+app = FastAPI(title="Alfa Hack API", version="1.22.0", lifespan=database_lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()],
@@ -40,6 +44,25 @@ app.include_router(company_analyses_router)
 app.include_router(insights_router)
 app.include_router(readiness_router)
 app.include_router(news_router)
+app.include_router(auth_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def safe_validation_error(request, error):
+    # FastAPI normally echoes input, including a submitted password. Never do so.
+    if request.url.path == '/api/auth/login':
+        return JSONResponse(status_code=422, content={'detail': {
+            'code':'INVALID_LOGIN_INPUT','message':'Invalid login request'}},
+            headers={'Cache-Control':'no-store'})
+    return await request_validation_exception_handler(request,error)
+
+
+@app.middleware('http')
+async def private_response_cache_policy(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 # -----------------------------
@@ -74,10 +97,10 @@ async def health():
 
 @app.post(
     "/api/analyze",
-    dependencies=[Depends(require_ai_enabled)],
+    dependencies=[Depends(legacy_denied), Depends(require_ai_enabled)],
     response_model=AnalyzeResponse,
-    responses={502: {"model": LegacyError}, 503: {"model": APIError, "description": "AI_DISABLED_IN_DEMO"}},
-    description="Прямой LLM-анализ без сохранения. news: минимум 1 символ; верхний лимит сейчас не задан."
+    responses={**AUTH_ERRORS, 502: {"model": LegacyError}, 503: {"model": APIError, "description": "AI_DISABLED_IN_DEMO"}},
+    description="Legacy отключён: без действующей сессии 401, с сессией 403. Прежняя схема сохранена; платный обход через этот endpoint запрещён."
 )
 async def analyze(request: AnalyzeRequest):
     try:
@@ -123,9 +146,9 @@ async def analyze(request: AnalyzeRequest):
 # RAG-анализ новости
 # -----------------------------
 
-@app.post("/api/analyze-rag", dependencies=[Depends(require_ai_enabled)],
-    responses={200: {"model": RAGResponse}, 502: {"model": LegacyError}, 503: {"model": APIError}},
-    description="RAG-анализ без сохранения в БД; sources содержат метаданные найденных фрагментов. Заблокирован в demo.")
+@app.post("/api/analyze-rag", dependencies=[Depends(legacy_denied), Depends(require_ai_enabled)],
+    responses={**AUTH_ERRORS, 200: {"model": RAGResponse}, 502: {"model": LegacyError}, 503: {"model": APIError}},
+    description="Legacy RAG отключён: без действующей сессии 401, с сессией 403. Прежняя схема сохранена; вызов модели недоступен.")
 async def analyze_rag(request: AnalyzeRequest):
     try:
         result = await analyze_with_rag(
@@ -148,10 +171,10 @@ async def analyze_rag(request: AnalyzeRequest):
 
 @app.post(
     "/api/analyze-company",
-    dependencies=[Depends(require_ai_enabled)],
+    dependencies=[Depends(legacy_denied), Depends(require_ai_enabled)],
     response_model=CompanyAnalysisResponse,
-    responses={422: {"model": ValidationResponse}, 502: {"model": LegacyError}, 503: {"model": APIError}},
-    description="Анализ с переданным CompanyProfile; без чтения профиля и сохранения в PostgreSQL. Demo: 503."
+    responses={**AUTH_ERRORS, 422: {"model": ValidationResponse}, 502: {"model": LegacyError}, 503: {"model": APIError}},
+    description="Legacy с профилем из тела отключён: без действующей сессии 401, с сессией 403. Подмена company_id не разрешает вызов модели."
 )
 async def analyze_company(
     request: CompanyAnalyzeRequest

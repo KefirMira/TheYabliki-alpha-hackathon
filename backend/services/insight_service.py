@@ -1,3 +1,4 @@
+from services.auth_service import denied
 from repositories.company_repository import CompanyRepository
 from repositories.insight_repository import InsightRepository
 from schemas.insights import InsightCard, InsightFeed, InsightFeedItem, InsightNews
@@ -10,9 +11,10 @@ class InsightNotFound(Exception):
 
 
 class InsightService:
-    def __init__(self, session):
+    def __init__(self, session, actor_id=None):
         self.companies = CompanyRepository(session)
-        self.insights = InsightRepository(session)
+        self.insights = InsightRepository(session, actor_id=actor_id)
+        self.actor_id = actor_id
 
     async def company(self, source_id):
         record = await self.companies.get_by_source_id(source_id)
@@ -39,6 +41,8 @@ class InsightService:
         record = await self.company(source_id)
         row = await self.insights.get_completed(record.id, insight_id)
         if row is None:
+            if self.actor_id is not None:
+                raise denied()
             raise InsightNotFound(insight_id)
         evidence = await self.insights.get_evidence(record.id, insight_id)
         return InsightCard(

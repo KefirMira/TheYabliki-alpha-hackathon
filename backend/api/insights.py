@@ -1,3 +1,4 @@
+from api.auth import company_read, current_actor, AUTH_ERRORS
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -9,11 +10,11 @@ from services.insight_cursor import InvalidInsightCursor, decode_cursor
 from services.insight_service import InsightNotFound, InsightService
 
 
-router = APIRouter(prefix="/api/companies", tags=["insights"])
+router = APIRouter(prefix="/api/companies", tags=["insights"], dependencies=[Depends(company_read)], responses=AUTH_ERRORS)
 
 
-def get_insight_service(session=Depends(get_company_session)):
-    return InsightService(session)
+def get_insight_service(session=Depends(get_company_session), actor=Depends(current_actor)):
+    return InsightService(session, actor_id=actor.user_id)
 
 
 def get_cursor(source_id: str = Path(min_length=1, max_length=200), cursor: str | None = Query(default=None, max_length=2048)):
