@@ -86,3 +86,35 @@ def test_diagnostics_limit_and_malformed_structure(tmp_path):
     path.write_text('BENEFICIARY;PAYER;PAY_AMT;PAY_CNT\nA;B;1\n',encoding='utf-8')
     with pytest.raises(ImportProblem,match='INVALID_COLUMN_COUNT'):
         audit_file(path,'payments')
+
+
+def test_apply_preconditions_and_sanitized_error(tmp_path, monkeypatch, capsys):
+    import asyncio
+    from dataset_import import storage
+    url='postgresql+asyncpg://synthetic:synthetic@127.0.0.1:5432/test_profiles'
+    path=write_rows(tmp_path/'synthetic.csv','payments',[['A','B','bad','1']])
+    with pytest.raises(ImportProblem,match='INVALID_ROWS_BLOCK_IMPORT'):
+        asyncio.run(storage.apply_audit(audit_file(path,'payments'),url,'test_profiles'))
+    empty=audit_file(write_rows(path,'payments',[]),'payments')
+    with pytest.raises(ImportProblem,match='NO_ROWS'):
+        asyncio.run(storage.apply_audit(empty,url,'test_profiles'))
+    audit=audit_file(write_rows(path,'payments',[PAYMENT]),'payments')
+    write_rows(path,'payments',[PAYMENT,PAYMENT])
+    with pytest.raises(ImportProblem,match='FILE_CHANGED_AFTER_DRY_RUN'):
+        asyncio.run(storage.apply_audit(audit,url,'test_profiles'))
+    async def fail(*args):
+        raise RuntimeError('private row and credentials')
+    monkeypatch.setattr(storage,'apply_audit',fail)
+    assert main(['payments','--file',str(path),'--apply','--confirm-isolated-import','--target','isolated',
+                 '--expected-database','test_profiles'])==1
+    assert json.loads(capsys.readouterr().out)=={'code':'DATASET_IMPORT_ERROR_VERIFY_BEFORE_RETRY'}
+
+
+def test_file_changed_during_validation(tmp_path, monkeypatch):
+    from dataset_import import validation
+    path=write_rows(tmp_path/'synthetic.csv','payments',[PAYMENT])
+    original=validation.fingerprint
+    hashes=iter([original(path),'changed'])
+    monkeypatch.setattr(validation,'fingerprint',lambda p:next(hashes))
+    with pytest.raises(ImportProblem,match='FILE_CHANGED_DURING_VALIDATION'):
+        validation.audit_file(path,'payments')

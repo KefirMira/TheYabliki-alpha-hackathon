@@ -5,6 +5,10 @@
 Приватный CSV профилей компаний: [dry-run и безопасный импорт](../docs/COMPANY_CSV_IMPORT.md).
 Платежи и связи SYNTHETIC_F этим инструментом не импортируются.
 
+Отдельный импорт строк платежей и непрозрачных связей идентификаторов:
+[DATASET_CSV_IMPORT.md](../docs/DATASET_CSV_IMPORT.md). Сохранение повторов без
+суммирования; реальные файлы пока проверены только через dry-run.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File database/tests/run.ps1
 ```
