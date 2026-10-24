@@ -4,9 +4,9 @@ from schemas.company import CompanyProfile
 from services.search_service import search_chunks
 
 
-def prepare(case, chunks):
+def prepare(case, chunks, *, profile_model=CompanyProfile):
     assert_sources_unchanged()
-    company = CompanyProfile.model_validate(case['company'])
+    company = profile_model.model_validate(case['company'])
     selected = search_chunks(query=case['news'], chunks=chunks, top_k=3)
     evidence, parts = [], []
     for index, chunk in enumerate(selected, 1):

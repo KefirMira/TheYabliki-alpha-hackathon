@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from evaluation.inputs import prepare
 from evaluation.prompts import SOURCE_HASHES
+from evaluation.financial_checks import financial_assertion_flags
 from schemas.company import CompanyProfile
 from services.structured_analysis_service import parse_structured_analysis
 from services.validation_service import validate_analysis
@@ -87,6 +88,7 @@ def technical_checks(raw, evidence, case, finish):
     cited = [int(i) for i in re.findall(r'\[Источник\s+(\d+)\]', analysis_text)]
     result['citations_present'] = bool(cited)
     result['citation_ids_valid'] = all(i in ids for i in cited) if cited else None
+    result['financial_assertion_flags'] = financial_assertion_flags(analysis_text)
     # Existing retrieval scores measure search rank, never truth/confidence.
     return result
 
@@ -112,9 +114,9 @@ def write_json(path, data, secret=''):
     path.chmod(0o600)
 
 
-def make_plan(cases, chunks, limits):
+def make_plan(cases, chunks, limits, *, profile_model=CompanyProfile):
     quota = organizer_quota(limits)
-    prepared = [(case, prepare(case, chunks)) for case in cases]
+    prepared = [(case, prepare(case, chunks, profile_model=profile_model)) for case in cases]
     total = Decimal(0)
     requests = 0
     for _, item in prepared:
