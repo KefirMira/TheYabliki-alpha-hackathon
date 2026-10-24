@@ -11,6 +11,8 @@ def projection(name, *columns):
 news_articles = projection(
     "news_articles", column("title", String), column("content", String),
     column("input_kind", String), column("content_hash", String),
+    column("url", String), column("source_name", String), column("source_id", String),
+    column("published_at", DateTime(timezone=True)), column("language", String),
 )
 analysis_runs = projection(
     "analysis_runs", column("company_id", BigInteger), column("analysis_type", String),

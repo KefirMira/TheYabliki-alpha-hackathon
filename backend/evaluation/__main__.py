@@ -1,0 +1,158 @@
+"""python -m evaluation. Fake by default; no SDK/env secret loading without --real."""
+import argparse
+import asyncio
+from decimal import Decimal, InvalidOperation
+import json
+import os
+from pathlib import Path
+from urllib.parse import urlsplit
+
+from evaluation.inputs import synthetic_chunks
+from evaluation.runner import OUTPUT_ROOT, make_plan, run, sanitized
+from evaluation.scenarios import scenarios
+from services.chunk_service import load_chunks
+
+BASE = Path(__file__).resolve().parents[1]
+
+
+def money(value):
+    try:
+        result = Decimal(value)
+        if not result.is_finite() or result <= 0:
+            raise ValueError
+        return result
+    except (InvalidOperation, ValueError):
+        raise argparse.ArgumentTypeError('Use a finite positive decimal') from None
+
+
+def arguments(argv=None):
+    parser = argparse.ArgumentParser(description='Offline-first DeepSeek/RAG evaluation; real mode costs money')
+    parser.add_argument('--real', action='store_true')
+    parser.add_argument('--plan', action='store_true', help='Local preflight only, never call SDK')
+    parser.add_argument('--list', action='store_true')
+    parser.add_argument('--scenario', action='append', choices=[c['id'] for c in scenarios()])
+    parser.add_argument('--synthetic-rag', action='store_true')
+    parser.add_argument('--rag-dir', type=Path)
+    parser.add_argument('--max-requests', type=int, choices=range(1, 11), default=1)
+    parser.add_argument('--max-input-tokens', type=int, default=16000)
+    parser.add_argument('--max-output-tokens', type=int, default=1000)
+    parser.add_argument('--request-seconds', type=float, default=60)
+    parser.add_argument('--total-seconds', type=float, default=180)
+    parser.add_argument('--input-usd-per-million', type=money)
+    parser.add_argument('--output-usd-per-million', type=money)
+    parser.add_argument('--budget-usd', type=money)
+    parser.add_argument('--allow-provider-host')
+    parser.add_argument('--allow-rag-transfer', action='store_true', help='Confirm permission to send selected corpus excerpts')
+    args = parser.parse_args(argv)
+    if not (1 <= args.max_input_tokens <= 64000 and 1 <= args.max_output_tokens <= 4000
+            and 1 <= args.request_seconds <= 120 and 1 <= args.total_seconds <= 900):
+        parser.error('Input/output/time limit outside safe range')
+    if args.real and not (args.input_usd_per_million and args.output_usd_per_million and args.budget_usd
+                         and args.allow_provider_host and (args.plan or args.allow_rag_transfer)):
+        parser.error('Real mode requires explicit prices, budget, provider host and --allow-rag-transfer')
+    return args
+
+
+def configuration(args):
+    config = dict(os.environ)
+    if args.real:
+        from dotenv import dotenv_values
+        config = {**dotenv_values(BASE / '.env'), **config}
+        url = urlsplit(config.get('LLM_BASE_URL') or '')
+        if (url.scheme != 'https' or not url.hostname or url.username or url.password or url.query or url.fragment
+                or url.port not in (None, 443) or url.hostname != args.allow_provider_host):
+            raise ValueError('PROVIDER_NOT_EXPLICITLY_ALLOWED')
+        if not config.get('LLM_API_KEY') or not config.get('LLM_MODEL'):
+            raise ValueError('MISSING_LLM_CONFIGURATION')
+        if config.get('AI_MODE') == 'demo':
+            raise ValueError('AI_DISABLED_IN_DEMO')
+    return config
+
+
+def load_corpus(args, config):
+    if args.synthetic_rag:
+        return synthetic_chunks(), []
+    directory = args.rag_dir or Path(config.get('RAG_KNOWLEDGE_BASE_DIR') or 'data/processed')
+    if not directory.is_absolute():
+        directory = BASE / directory
+    files = sorted(directory.glob('*.json'))
+    chunks = [chunk for file in files for chunk in load_chunks(str(file))]
+    if not chunks or any(not isinstance(c.get('text'), str) or not c['text'].strip()
+                         or not isinstance(c.get('source'), str) or not c['source']
+                         or not isinstance(c.get('page'), int) or c['page'] < 1 for c in chunks):
+        raise ValueError('MISSING_OR_INVALID_RAG_CORPUS')
+    import hashlib
+    return chunks, [{'file': file.name, 'sha256': hashlib.sha256(file.read_bytes()).hexdigest()} for file in files]
+
+
+def real_client(config):
+    # Only reached after real preflight. No default SDK retries or redirect following.
+    from openai import AsyncOpenAI, DefaultAsyncHttpxClient
+    return AsyncOpenAI(api_key=config['LLM_API_KEY'], base_url=config['LLM_BASE_URL'],
+        max_retries=0, timeout=60, http_client=DefaultAsyncHttpxClient(follow_redirects=False, trust_env=False))
+
+
+async def execute(args):
+    cases = scenarios()
+    if args.list:
+        print(json.dumps([{'id': c['id'], 'category': c['category']} for c in cases], ensure_ascii=False))
+        return 0
+    cases = [c for c in cases if not args.scenario or c['id'] in args.scenario]
+    config = configuration(args)
+    secret = config.get('LLM_API_KEY', '') if args.real else ''
+    chunks, corpus_files = load_corpus(args, config)
+    limits = {'max_requests': args.max_requests, 'max_input_tokens': args.max_input_tokens,
+              'max_output_tokens': args.max_output_tokens, 'request_seconds': args.request_seconds,
+              'total_seconds': args.total_seconds, 'input_rate': args.input_usd_per_million or Decimal(0),
+              'output_rate': args.output_usd_per_million or Decimal(0), 'budget_usd': args.budget_usd or Decimal(0)}
+    prepared, plan = make_plan(cases, chunks, limits)
+    if args.real and (plan['planned_requests'] > limits['max_requests'] or
+                      Decimal(plan['estimated_upper_usd']) > limits['budget_usd']):
+        raise ValueError('REQUEST_OR_BUDGET_LIMIT_EXCEEDED')
+    print(json.dumps({'mode': 'real' if args.real else 'fake', 'plan': plan}, default=str, ensure_ascii=False))
+    if args.plan:
+        return 0
+    metadata = {'corpus_files': corpus_files, 'synthetic_rag': args.synthetic_rag,
+                'requested_model': config.get('LLM_MODEL') if args.real else 'fake-no-llm',
+                'provider_host': args.allow_provider_host if args.real else None}
+    if args.real and plan['planned_requests']:
+        client = real_client(config)
+        async def complete(messages, *, max_tokens, timeout):
+            response = await client.with_options(timeout=timeout, max_retries=0).chat.completions.create(
+                model=config['LLM_MODEL'], messages=messages, max_tokens=max_tokens)
+            if not response.choices:
+                raise ValueError('NO_MODEL_CHOICES')
+            usage = response.usage
+            return {'raw': response.choices[0].message.content or '',
+                    'finish_reason': response.choices[0].finish_reason, 'model': response.model,
+                    'usage': ({k: getattr(usage, k, None) for k in
+                        ('prompt_tokens', 'completion_tokens', 'total_tokens')} if usage else None)}
+        try:
+            folder = await run(prepared, plan, complete, real=True, secret=secret, metadata=metadata)
+        finally:
+            await client.close()
+    else:
+        folder = await run(prepared, plan, metadata=metadata, real=args.real, secret=secret)
+    print(json.dumps({'results': str(folder), 'human_review_required': True}, ensure_ascii=False))
+    summary = json.loads((folder / 'summary.json').read_text(encoding='utf-8'))
+    return 1 if summary['stopped'] or any(s != 'RECEIVED' for s in summary['statuses'].values()) else 0
+
+
+def main(argv=None):
+    args = arguments(argv)
+    try:
+        return asyncio.run(execute(args))
+    except KeyboardInterrupt:
+        print('INTERRUPTED: inspect intent files; do not automatically retry real calls.')
+        return 130
+    except Exception as error:
+        safe_codes = {'PRODUCTION_PROMPT_DRIFT', 'INPUT_LIMIT_EXCEEDED_NO_PROMPT_TRUNCATION',
+            'REQUEST_OR_BUDGET_LIMIT_EXCEEDED', 'MISSING_OR_INVALID_RAG_CORPUS',
+            'PROVIDER_NOT_EXPLICITLY_ALLOWED', 'MISSING_LLM_CONFIGURATION', 'AI_DISABLED_IN_DEMO'}
+        print(json.dumps({'error': str(error) if isinstance(error, ValueError) and str(error) in safe_codes
+                          else 'EVALUATION_ERROR_DETAILS_WITHHELD'}))
+        return 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

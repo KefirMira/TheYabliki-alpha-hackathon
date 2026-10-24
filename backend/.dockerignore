@@ -14,3 +14,6 @@
 !schemas/*.py
 !services/
 !services/*.py
+
+!analysis_admin.py
+!news_matching_admin.py

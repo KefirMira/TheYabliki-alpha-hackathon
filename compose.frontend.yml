@@ -11,6 +11,9 @@ services:
       - ./database/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
       - ./database/migrations/002_pulse_features.sql:/docker-entrypoint-initdb.d/002_pulse_features.sql:ro
       - ./database/migrations/003_integrity.sql:/docker-entrypoint-initdb.d/003_integrity.sql:ro
+      - ./database/migrations/004_news_external_identity.sql:/docker-entrypoint-initdb.d/004_news_external_identity.sql:ro
+      - ./database/migrations/005_saved_news_analysis_jobs.sql:/docker-entrypoint-initdb.d/005_saved_news_analysis_jobs.sql:ro
+      - ./database/migrations/006_news_company_matching.sql:/docker-entrypoint-initdb.d/006_news_company_matching.sql:ro
       - ./docker/frontend-demo.sql:/docker-entrypoint-initdb.d/900_demo.sql:ro
     healthcheck:
       test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U pulse_demo -d pulse_demo"]

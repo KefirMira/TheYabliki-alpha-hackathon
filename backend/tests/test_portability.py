@@ -81,13 +81,14 @@ def test_readiness_database(monkeypatch, tmp_path, database_state):
             pass
 
         async def execute(self, statement, params):
-            seen.append(params["name"])
+            if "name" in params:
+                seen.append(params["name"])
             if database_state == "unavailable":
                 raise OSError("secret DSN must not appear")
 
             class Result:
                 def scalar_one(self):
-                    return None if database_state == "missing_table" else "existing"
+                    return None if database_state == "missing_table" else ("existing" if "name" in params else True)
 
             return Result()
 

@@ -8,6 +8,10 @@ from sqlalchemy import text
 
 from services.knowledge_base_service import load_knowledge_base
 from settings import execution_mode
+from db.readiness import news_identity_ready
+from schemas.http_docs import ReadinessResponse
+from db.job_schema import JOB_SCHEMA_SQL, JOB_SCHEMA_SIGNATURE
+from db.matching_schema import MATCH_SCHEMA_SQL, MATCH_SCHEMA_SIGNATURE
 
 router = APIRouter()
 TABLES = (
@@ -15,6 +19,8 @@ TABLES = (
     "news_articles", "analysis_runs", "company_news_analyses", "insight_evidence",
     "information_sources", "company_contexts", "company_documents",
     "company_insight_states", "insight_updates",
+    "news_analysis_jobs", "news_analysis_attempts",
+    "company_verified_names", "news_company_match_runs", "news_company_match_candidates",
 )
 
 
@@ -31,7 +37,9 @@ def rag_ready() -> bool:
         return False
 
 
-@router.get("/ready")
+@router.get("/ready", responses={200: {"model": ReadinessResponse},
+    503: {"model": ReadinessResponse, "description": "Компоненты не готовы; без DDL и обращения к LLM"}},
+    description="18 таблиц; проверенные определения объектов 004–006. В demo требуется только БД; в full также RAG и конфигурация LLM (без запроса провайдеру).")
 async def readiness(request: Request):
     checks = {
         "rag": await asyncio.to_thread(rag_ready),
@@ -51,7 +59,15 @@ async def readiness(request: Request):
                         if result.scalar_one() is None:
                             break
                     else:
-                        checks["database"] = True
+                        checks["database"] = await news_identity_ready(session)
+                        if checks['database']:
+                            result = await session.execute(text('SELECT (:signature = (' + JOB_SCHEMA_SQL + '))'),
+                                {'signature':JOB_SCHEMA_SIGNATURE})
+                            checks['database'] = result.scalar_one() is True
+                        if checks['database']:
+                            result = await session.execute(text('SELECT (:signature = (' + MATCH_SCHEMA_SQL + '))'),
+                                {'signature': MATCH_SCHEMA_SIGNATURE})
+                            checks['database'] = result.scalar_one() is True
         except Exception:
             # No paths, DSNs, SQL or provider credentials in public diagnostics.
             pass

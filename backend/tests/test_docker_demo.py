@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize("path", ["/api/analyze", "/api/analyze-rag", "/api/analyze-company",
+                                  "/api/companies/DEMO-001/news/1/analyses",
                                   "/api/companies/DEMO-001/analyses"])
 def test_demo_blocks_ai_before_body_or_database(monkeypatch, path):
     monkeypatch.setenv("AI_MODE", "demo")
@@ -47,7 +48,7 @@ def test_demo_readiness_requires_database_only(monkeypatch, database_ready):
         async def execute(self, *args):
             class Result:
                 def scalar_one(self):
-                    return "exists" if database_ready else None
+                    return True if database_ready else None
             return Result()
 
     with TestClient(app) as client:
@@ -84,9 +85,12 @@ def test_compose_resolved_configuration(full):
         # Compose drops explicit false values from normalized JSON.
         assert not backend["volumes"][0].get("bind", {}).get("create_host_path", False)
     init = [v for v in db["volumes"] if v["target"].startswith("/docker-entrypoint-initdb.d/")]
-    assert len(init) == 4 and all(v["read_only"] for v in init)
+    assert len(init) == 7 and all(v["read_only"] for v in init)
     assert sorted(Path(v["source"]).name for v in init) == [
-        "002_pulse_features.sql", "003_integrity.sql", "frontend-demo.sql", "schema.sql"]
+        "002_pulse_features.sql", "003_integrity.sql", "004_news_external_identity.sql", "005_saved_news_analysis_jobs.sql", "006_news_company_matching.sql", "frontend-demo.sql", "schema.sql"]
+    assert sorted(Path(v["target"]).name for v in init) == [
+        "001_schema.sql", "002_pulse_features.sql", "003_integrity.sql",
+        "004_news_external_identity.sql", "005_saved_news_analysis_jobs.sql", "006_news_company_matching.sql", "900_demo.sql"]
 
 
 def test_docker_context_is_allowlisted():
@@ -96,3 +100,16 @@ def test_docker_context_is_allowlisted():
     dockerfile = (ROOT / "backend/Dockerfile").read_text()
     assert "COPY . " not in dockerfile and "USER backend" in dockerfile
     assert "FROM python:3.12" in dockerfile
+
+
+def test_migration_tests_use_selected_database_root(monkeypatch, tmp_path):
+    import runpy
+
+    migrations = tmp_path / "migrations"
+    migrations.mkdir()
+    marker = "-- synthetic selected migration; never executed\n"
+    (migrations / "004_news_external_identity.sql").write_text(marker, encoding="utf-8")
+    monkeypatch.setenv("NEWS_IDENTITY_DATABASE_ROOT", str(tmp_path))
+    selected = runpy.run_path(str(ROOT / "backend/tests/test_news_identity_migration.py"))
+    assert selected["DATABASE_ROOT"] == tmp_path.resolve()
+    assert selected["MIGRATION"] == marker

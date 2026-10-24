@@ -5,7 +5,8 @@ from schemas.analysis import (
 )
 from schemas.company import CompanyProfile
 
-from services.rag_service import analyze_with_rag
+from services.analysis_gateway import analyze_with_rag
+from services.company_context_service import external_transfer_guard, serialize_context, CONTEXT_RULES
 from services.structured_analysis_service import (
     parse_structured_analysis
 )
@@ -14,22 +15,26 @@ from services.validation_service import validate_analysis
 
 async def analyze_for_company(
     news: str,
-    company: CompanyProfile
+    company: CompanyProfile,
+    *, _local_rag=None,
 ) -> dict:
-    return await _analyze_for_company(news, company, with_evidence=False)
+    return await _analyze_for_company(news, company, with_evidence=False, local_rag=_local_rag)
 
 
-async def analyze_for_company_with_evidence(news: str, company: CompanyProfile):
-    return await _analyze_for_company(news, company, with_evidence=True)
+async def analyze_for_company_with_evidence(news: str, company: CompanyProfile, *, _local_rag=None):
+    return await _analyze_for_company(news, company, with_evidence=True, local_rag=_local_rag)
 
 
-async def _analyze_for_company(news: str, company: CompanyProfile, *, with_evidence: bool):
+async def _analyze_for_company(news: str, company: CompanyProfile, *, with_evidence: bool, local_rag=None):
     """
     Возвращает структурированный анализ новости
     для конкретной компании.
     """
 
-    company_data = company.model_dump_json(
+    context = company._ai_context
+    if local_rag is None:
+        external_transfer_guard(context)
+    company_data = serialize_context(context) if context is not None else company.model_dump_json(
         indent=2,
         exclude_none=True
     )
@@ -82,8 +87,10 @@ async def _analyze_for_company(news: str, company: CompanyProfile, *, with_evide
   указывай номер источника в тексте.
 """
 
+    if context is not None:
+        question += CONTEXT_RULES
     rag_options = {"include_evidence": True} if with_evidence else {}
-    rag_result = await analyze_with_rag(
+    rag_result = await (local_rag or analyze_with_rag)(
         question=question,
         search_query=news,
         **rag_options,
@@ -137,5 +144,6 @@ async def _analyze_for_company(news: str, company: CompanyProfile, *, with_evide
             analysis=response,
             evidence=rag_result["evidence"],
             model_name=rag_result.get("model_name"),
+            prompt_version="company-context-v1" if context is not None else "company-json-v1",
         )
     return response.model_dump()

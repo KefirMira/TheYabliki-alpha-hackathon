@@ -1,11 +1,22 @@
+param(
+    [string]$ComposeOverride
+)
+
 $ErrorActionPreference = 'Stop'
 $compose = Join-Path $PSScriptRoot '../compose.test.yml'
+$composeFiles = @('-f', $compose)
+if ($ComposeOverride) {
+    if (-not (Test-Path -LiteralPath $ComposeOverride -PathType Leaf)) {
+        throw "Compose override not found: $ComposeOverride"
+    }
+    $composeFiles += @('-f', (Resolve-Path -LiteralPath $ComposeOverride).Path)
+}
 # A unique Compose project isolates both container names and the named volume.
 $project = 'theyabliki-db-check-' + [guid]::NewGuid().ToString('N').Substring(0,12)
 $generatedPassword = -not $env:DB_TEST_PASSWORD
 if ($generatedPassword) { $env:DB_TEST_PASSWORD = [guid]::NewGuid().ToString('N') }
 function Compose {
-    & docker compose -p $project -f $compose @args
+    & docker compose -p $project @composeFiles @args
     if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed: $($args -join ' ')" }
 }
 function SqlFile([string]$file) {
@@ -21,11 +32,17 @@ try {
     $before = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/fingerprint.sql
     SqlFile '/audit/migrations/002_pulse_features.sql'
     SqlFile '/audit/migrations/003_integrity.sql'
+    SqlFile '/audit/migrations/004_news_external_identity.sql'
+    SqlFile '/audit/migrations/005_saved_news_analysis_jobs.sql'
+    SqlFile '/audit/migrations/006_news_company_matching.sql'
     SqlFile '/audit/tests/fixtures/pulse.sql'
     $pulseBefore = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/pulse_fingerprint.sql
     SqlFile '/audit/tests/verify.sql'
     SqlFile '/audit/migrations/002_pulse_features.sql'
     SqlFile '/audit/migrations/003_integrity.sql'
+    SqlFile '/audit/migrations/004_news_external_identity.sql'
+    SqlFile '/audit/migrations/005_saved_news_analysis_jobs.sql'
+    SqlFile '/audit/migrations/006_news_company_matching.sql'
     SqlFile '/audit/tests/verify.sql'
     $after = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/fingerprint.sql
     $pulseAfter = Compose exec -T postgres psql -X -At -v ON_ERROR_STOP=1 -U audit_user -d theyabliki_test -f /audit/tests/pulse_fingerprint.sql
