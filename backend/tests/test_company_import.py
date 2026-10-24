@@ -92,3 +92,52 @@ def test_malformed_record_fails_whole_file(tmp_path):
         stream.write('wrong;columns\n')
     with pytest.raises(ImportProblem, match='INVALID_COLUMN_COUNT'):
         audit_file(path)
+
+
+@pytest.mark.parametrize('value,expected', [('0', '0'), ('0.00', '0.00'),
+    ('9999999999999999.99', '9999999999999999.99'), ('12.120', '12.120')])
+def test_money_boundaries_without_rounding(tmp_path, value, expected):
+    audit = audit_file(write_csv(tmp_path / 'synthetic.csv', [synthetic_row(REVENUE_COMPANY=value)]))
+    assert audit.accepted[0].revenue == Decimal(expected)
+
+
+@pytest.mark.parametrize('url,name', [
+    ('postgresql+asyncpg://user:secret@example.invalid:5432/test_profiles', 'test_profiles'),
+    ('postgresql+asyncpg://user:secret@127.0.0.1:5432/production', 'production'),
+    ('postgresql+asyncpg://user:secret@127.0.0.1:5432/test_profiles', 'test_other'),
+    ('postgresql+asyncpg://user:secret@127.0.0.1:5432/test_profiles?host=example.invalid', 'test_profiles'),
+    ('postgresql+asyncpg://user@127.0.0.1:5432/test_profiles', 'test_profiles'),
+    ('postgresql://user:secret@127.0.0.1:5432/test_profiles', 'test_profiles'),
+    ('not-a-url', 'test_profiles'),
+])
+def test_target_guard_before_any_connection(url, name):
+    from company_import.storage import target_url
+    with pytest.raises(ImportProblem, match='ISOLATED_TARGET_REQUIRED'):
+        target_url(url, name)
+
+
+def test_explicit_confirmation_required(tmp_path, capsys):
+    path = write_csv(tmp_path / 'synthetic.csv', [synthetic_row()])
+    assert main(['--file', str(path), '--apply']) == 1
+    assert json.loads(capsys.readouterr().out) == {'code': 'EXPLICIT_ISOLATED_CONFIRMATION_REQUIRED'}
+
+
+def test_cli_hides_database_failure_and_sensitive_values(tmp_path, monkeypatch, capsys):
+    from company_import import storage
+    async def failure(*args, **kwargs):
+        raise RuntimeError('secret DSN, SYNTH-IMPORT-001, 1234567890.12')
+    monkeypatch.setattr(storage, 'apply_audit', failure)
+    path = write_csv(tmp_path / 'synthetic.csv', [synthetic_row()])
+    assert main(['--file', str(path), '--apply', '--confirm-isolated-import', '--target', 'isolated',
+                 '--expected-database', 'test_profiles']) == 1
+    assert json.loads(capsys.readouterr().out) == {'code': 'IMPORT_DATABASE_ERROR_VERIFY_BEFORE_RETRY'}
+
+
+def test_bom_and_invalid_header_and_embedded_control(tmp_path):
+    path = write_csv(tmp_path / 'synthetic.csv', [synthetic_row()], encoding='utf-8-sig')
+    assert len(audit_file(path).accepted) == 1
+    audit = audit_file(write_csv(path, [synthetic_row(CITY='Synthetic\ncity')]))
+    assert audit.issues[0]['code'] == 'WHITESPACE_OR_CONTROL'
+    path.write_text('not;the;headers\n', encoding='utf-8')
+    with pytest.raises(ImportProblem, match='INVALID_HEADERS_OR_DELIMITER'):
+        audit_file(path)

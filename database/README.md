@@ -2,6 +2,9 @@
 
 Только схема, миграции и полностью синтетические фикстуры. Реальные CSV и оригинальный seed.sql в Git не включаются; для них потребуется отдельный импорт.
 
+Приватный CSV профилей компаний: [dry-run и безопасный импорт](../docs/COMPANY_CSV_IMPORT.md).
+Платежи и связи SYNTHETIC_F этим инструментом не импортируются.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File database/tests/run.ps1
 ```
