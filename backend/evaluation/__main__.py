@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from evaluation.inputs import synthetic_chunks
 from evaluation.runner import make_plan, run, validate_real_plan
 from evaluation.scenarios import scenarios
+from evaluation.compact import VARIANT as COMPACT_VARIANT, RULES as COMPACT_RULES
 from services.chunk_service import load_chunks
 
 BASE = Path(__file__).resolve().parents[1]
@@ -36,6 +37,7 @@ def arguments(argv=None):
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--scenario', action='append', choices=[c['id'] for c in scenarios()])
     parser.add_argument('--synthetic-rag', action='store_true')
+    parser.add_argument('--compact', action='store_true', help='Opt-in compact evaluation instructions; no production prompt changes')
     parser.add_argument('--rag-dir', type=Path)
     parser.add_argument('--max-requests', type=int, choices=range(1, 11), default=1)
     parser.add_argument('--max-input-tokens', type=int, default=16000)
@@ -57,9 +59,11 @@ def arguments(argv=None):
     if args.organizer_gateway:
         if (not args.real or not args.synthetic_rag or args.rag_dir is not None
                 or args.scenario != ['macro-rate'] or args.max_requests != 1
-                or args.max_input_tokens > 16000 or args.max_output_tokens > 1000
+                or args.max_input_tokens > 16000 or args.max_output_tokens > 2000
                 or args.request_seconds > 60 or args.total_seconds > 60 or any(p is not None for p in prices)):
-            parser.error('Organizer mode requires --real, --synthetic-rag, one macro-rate scenario, one request, limits <=16000/1000/60s and no USD flags')
+            parser.error('Organizer mode requires --real, --synthetic-rag, one macro-rate scenario, one request, limits <=16000/2000/60s and no USD flags')
+        if args.max_output_tokens > 1000 and args.allow_provider_host != 'changellenge.up.railway.app':
+            parser.error('Increased single-test output limit requires the primary organizer gateway')
         if not args.plan and not args.acknowledge_unknown_cost:
             parser.error('Organizer execution requires --acknowledge-unknown-cost')
     elif args.acknowledge_unknown_cost:
@@ -87,6 +91,8 @@ def configuration(args):
             raise ValueError('AI_DISABLED_IN_DEMO')
         if args.organizer_gateway and (config['LLM_BASE_URL'].rstrip('/') not in ORGANIZER_URLS
                                        or config['LLM_MODEL'] != ORGANIZER_MODEL):
+            raise ValueError('ORGANIZER_CONFIGURATION_MISMATCH')
+        if args.organizer_gateway and args.max_output_tokens > 1000 and config['LLM_BASE_URL'].rstrip('/') != 'https://changellenge.up.railway.app/v1':
             raise ValueError('ORGANIZER_CONFIGURATION_MISMATCH')
     return config
 
@@ -142,6 +148,9 @@ async def execute(args):
         print(json.dumps([{'id': c['id'], 'category': c['category']} for c in cases], ensure_ascii=False))
         return 0
     cases = [c for c in cases if not args.scenario or c['id'] in args.scenario]
+    suffix = COMPACT_RULES if args.compact else ''
+    if suffix:
+        cases = [{**case, 'evaluation_prompt_variant': COMPACT_VARIANT} for case in cases]
     config = configuration(args)
     secret = config.get('LLM_API_KEY', '') if args.real else ''
     chunks, corpus_files = load_corpus(args, config)
@@ -152,7 +161,8 @@ async def execute(args):
               'input_rate': None if args.organizer_gateway else args.input_usd_per_million or Decimal(0),
               'output_rate': None if args.organizer_gateway else args.output_usd_per_million or Decimal(0),
               'budget_usd': None if args.organizer_gateway else args.budget_usd or Decimal(0)}
-    prepared, plan = make_plan(cases, chunks, limits)
+    prepared, plan = make_plan(cases, chunks, limits, question_suffix=suffix)
+    plan['prompt_variant'] = COMPACT_VARIANT if args.compact else 'baseline'
     if args.real:
         validate_real_plan(plan)
     print(json.dumps({'mode': 'real' if args.real else 'fake', 'plan': plan}, default=str, ensure_ascii=False))
@@ -189,7 +199,8 @@ def main(argv=None):
         safe_codes = {'PRODUCTION_PROMPT_DRIFT', 'INPUT_LIMIT_EXCEEDED_NO_PROMPT_TRUNCATION',
             'REQUEST_OR_BUDGET_LIMIT_EXCEEDED', 'MISSING_OR_INVALID_RAG_CORPUS',
             'PROVIDER_NOT_EXPLICITLY_ALLOWED', 'MISSING_LLM_CONFIGURATION', 'AI_DISABLED_IN_DEMO',
-            'ORGANIZER_CONFIGURATION_MISMATCH', 'INVALID_BILLING_MODE', 'INVALID_ORGANIZER_LIMITS'}
+            'ORGANIZER_CONFIGURATION_MISMATCH', 'INVALID_BILLING_MODE', 'INVALID_ORGANIZER_LIMITS',
+            'ORGANIZER_FIXTURE_MISMATCH'}
         print(json.dumps({'error': str(error) if isinstance(error, ValueError) and str(error) in safe_codes
                           else 'EVALUATION_ERROR_DETAILS_WITHHELD'}))
         return 1

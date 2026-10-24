@@ -46,7 +46,7 @@ def validate_real_plan(plan):
     requests = 2 if paired else 1
     if quota and (limits['max_requests'] != requests or plan['scenario_count'] != requests
                   or not 1 <= limits['max_input_tokens'] <= (8000 if paired else 16000)
-                  or not 1 <= limits['max_output_tokens'] <= 1000
+                  or not 1 <= limits['max_output_tokens'] <= (1000 if paired else 2000)
                   or not 1 <= limits['request_seconds'] <= 60
                   or not 1 <= limits['total_seconds'] <= (120 if paired else 60)
                   or any(limits.get(k) is not None for k in ('input_rate', 'output_rate', 'budget_usd'))):
@@ -151,6 +151,23 @@ async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', 
     quota = organizer_quota(plan['limits'])
     if real:
         validate_real_plan(plan)
+        if (plan['limits'].get('billing_mode') == 'organizer_rub_quota'
+                and plan['limits']['max_output_tokens'] > 1000):
+            # The expanded budget is reserved for the fixed synthetic single test.
+            # Rebuild the request before intent files or SDK calls, rejecting mutated data.
+            from evaluation.scenarios import scenarios
+            from evaluation.inputs import synthetic_chunks
+            from evaluation.compact import VARIANT, RULES
+            variant = plan.get('prompt_variant', 'baseline')
+            if variant not in {'baseline', VARIANT}:
+                raise ValueError('ORGANIZER_FIXTURE_MISMATCH')
+            cases = scenarios()[:1]
+            if variant == VARIANT:
+                cases = [{**case, 'evaluation_prompt_variant': VARIANT} for case in cases]
+            expected, _ = make_plan(cases, synthetic_chunks(), plan['limits'],
+                                    question_suffix=RULES if variant == VARIANT else '')
+            if prepared != expected:
+                raise ValueError('ORGANIZER_FIXTURE_MISMATCH')
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     folder = root / (datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid4().hex)
@@ -191,11 +208,12 @@ async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', 
                     record['provider_outcome'] = 'RESPONSE_RECEIVED'
                     record['status'] = 'RECEIVED'
                     record['checks'] = technical_checks(response['raw'], item['evidence'], case, response['finish_reason'])
-                    if real and plan['limits'].get('billing_mode') == 'organizer_comparison_rub_quota':
+                    if real and quota:
                         if (not record['checks']['schema_valid'] or response['finish_reason'] != 'stop'
                                 or record['checks']['citation_ids_valid'] is False):
                             stop = True
-                            record['comparison_gate'] = 'STOPPED_TECHNICAL_RESULT_REQUIRES_REVIEW'
+                            gate = 'comparison_gate' if plan['limits']['billing_mode'] == 'organizer_comparison_rub_quota' else 'organizer_gate'
+                            record[gate] = 'STOPPED_TECHNICAL_RESULT_REQUIRES_REVIEW'
                     usage = response.get('usage')
                     if real:
                         if not usage or any(not isinstance(usage.get(k), int) or isinstance(usage[k], bool) or usage[k] < 0

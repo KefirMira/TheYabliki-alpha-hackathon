@@ -25,7 +25,7 @@ def quota_plan():
 
 
 @pytest.mark.parametrize('extra',[
-    ['--max-requests','2'],['--max-output-tokens','1001'],['--max-input-tokens','16001'],
+    ['--max-requests','2'],['--max-output-tokens','2001'],['--max-input-tokens','16001'],
     ['--request-seconds','61'],['--total-seconds','61'],['--input-usd-per-million','1'],
     ['--output-usd-per-million','1'],['--budget-usd','1'],['--rag-dir','private'],
     ['--scenario','gold-producer'],
