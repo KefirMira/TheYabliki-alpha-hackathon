@@ -31,6 +31,43 @@ def estimate(input_tokens, output_tokens, input_rate, output_rate):
     return (Decimal(input_tokens) * input_rate + Decimal(output_tokens) * output_rate) / Decimal(1000000)
 
 
+def organizer_quota(limits):
+    mode = limits.get('billing_mode', 'usd')
+    if mode not in {'usd', 'organizer_rub_quota'}:
+        raise ValueError('INVALID_BILLING_MODE')
+    return mode == 'organizer_rub_quota'
+
+
+def validate_real_plan(plan):
+    limits = plan['limits']
+    quota = organizer_quota(limits)
+    if quota and (limits['max_requests'] != 1 or plan['scenario_count'] != 1
+                  or not 1 <= limits['max_input_tokens'] <= 16000
+                  or not 1 <= limits['max_output_tokens'] <= 1000
+                  or not 1 <= limits['request_seconds'] <= 60
+                  or not 1 <= limits['total_seconds'] <= 60
+                  or any(limits.get(k) is not None for k in ('input_rate', 'output_rate', 'budget_usd'))):
+        raise ValueError('INVALID_ORGANIZER_LIMITS')
+    if (plan['planned_requests'] > limits['max_requests'] or
+            (not quota and Decimal(plan['estimated_upper_usd']) > limits['budget_usd'])):
+        raise ValueError('REQUEST_OR_BUDGET_LIMIT_EXCEEDED')
+
+
+def provider_budget_exceeded(error):
+    """Inspect a bounded provider error message, never log/persist its body or str(error)."""
+    status = getattr(error, 'status_code', None)
+    if not isinstance(status, int) or not 400 <= status <= 599:
+        return False
+    body = getattr(error, 'body', None)
+    for _ in range(4):
+        if isinstance(body, str):
+            return 'budget has been exceeded' in body[:4096].casefold()
+        if not isinstance(body, dict):
+            return False
+        body = body.get('message', body.get('error', body.get('detail')))
+    return False
+
+
 def technical_checks(raw, evidence, case, finish):
     result = {'schema_valid': False, 'finish_reason': finish, 'truncated': finish == 'length',
               'citation_ids_valid': None, 'citations_present': False,
@@ -76,6 +113,7 @@ def write_json(path, data, secret=''):
 
 
 def make_plan(cases, chunks, limits):
+    quota = organizer_quota(limits)
     prepared = [(case, prepare(case, chunks)) for case in cases]
     total = Decimal(0)
     requests = 0
@@ -85,11 +123,14 @@ def make_plan(cases, chunks, limits):
             raise ValueError('INPUT_LIMIT_EXCEEDED_NO_PROMPT_TRUNCATION')
         if item['evidence']:
             requests += 1
-            total += estimate(item['input_token_planning_bound'], limits['max_output_tokens'],
-                              limits['input_rate'], limits['output_rate'])
+            if not quota:
+                total += estimate(item['input_token_planning_bound'], limits['max_output_tokens'],
+                                  limits['input_rate'], limits['output_rate'])
     return prepared, {'scenario_count': len(cases), 'planned_requests': requests,
-                      'estimated_upper_usd': str(total), 'limits': limits,
-                      'pricing_note': 'Operator rates; byte-based planning bound; excludes unknown gateway fees.'}
+                      'estimated_upper_usd': None if quota else str(total), 'limits': limits,
+                      'input_token_planning_bounds': {case['id']: item['input_token_planning_bound'] for case,item in prepared},
+                      'pricing_note': ('Unknown per-request cost. Organizer quota: 500 RUB/day per shared team key, reset 03:00 Europe/Moscow (organizer instructions reported by user). Remaining quota not checked. Token/time limits do not guarantee a monetary limit.'
+                                       if quota else 'Operator rates; byte-based planning bound; excludes unknown gateway fees.')}
 
 
 async def fake_complete(messages, *, max_tokens, timeout):
@@ -100,9 +141,9 @@ async def fake_complete(messages, *, max_tokens, timeout):
 
 
 async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', metadata=None, root=OUTPUT_ROOT):
-    if real and (plan['planned_requests'] > plan['limits']['max_requests'] or
-                 Decimal(plan['estimated_upper_usd']) > plan['limits']['budget_usd']):
-        raise ValueError('REQUEST_OR_BUDGET_LIMIT_EXCEEDED')
+    quota = organizer_quota(plan['limits'])
+    if real:
+        validate_real_plan(plan)
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     folder = root / (datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid4().hex)
@@ -117,7 +158,7 @@ async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', 
     stop = False
     actual_cost = Decimal(0)
     attempted = 0
-    billing_unknown = False
+    billing_unknown = real and quota
     for case, item in prepared:
         record = {'scenario': case, 'request': item, 'mode': 'real' if real else 'fake',
                   'status': 'NOT_ATTEMPTED', 'response': None, 'checks': None,
@@ -151,16 +192,23 @@ async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', 
                             record['cost_status'] = 'UNKNOWN_STOPPED'
                             billing_unknown = True
                         else:
-                            cost = estimate(usage['prompt_tokens'], usage['completion_tokens'],
-                                            plan['limits']['input_rate'], plan['limits']['output_rate'])
-                            actual_cost += cost
-                            record['estimated_actual_usd'] = str(cost)
-                            if actual_cost >= plan['limits']['budget_usd'] or usage['prompt_tokens'] > item['input_token_planning_bound'] or usage['completion_tokens'] > plan['limits']['max_output_tokens']:
+                            if quota:
+                                record['estimated_actual_usd'] = None
+                                record['cost_status'] = 'UNKNOWN_ORGANIZER_QUOTA'
+                            else:
+                                cost = estimate(usage['prompt_tokens'], usage['completion_tokens'],
+                                                plan['limits']['input_rate'], plan['limits']['output_rate'])
+                                actual_cost += cost
+                                record['estimated_actual_usd'] = str(cost)
+                            if ((not quota and actual_cost >= plan['limits']['budget_usd']) or usage['prompt_tokens'] > item['input_token_planning_bound'] or usage['completion_tokens'] > plan['limits']['max_output_tokens']):
                                 stop = True
                                 record['cost_status'] = 'BOUND_REACHED_STOPPED'
-                except Exception:
+                except Exception as error:
                     # Do not persist provider exception messages, request headers or bodies.
                     record['status'] = 'ERROR_NO_RETRY'
+                    if provider_budget_exceeded(error):
+                        record['status'] = 'BUDGET_EXCEEDED_NO_RETRY'
+                        record['error_code'] = 'PROVIDER_BUDGET_EXCEEDED'
                     record['provider_outcome'] = 'UNKNOWN_DO_NOT_AUTO_RETRY' if real else 'FAKE_ERROR'
                     billing_unknown |= real
                     stop = True
@@ -177,7 +225,9 @@ async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', 
     (folder / 'manual-review.tsv').chmod(0o600)
     write_json(folder / 'summary.json', {'attempted': attempted, 'mode': 'real' if real else 'fake',
         'stopped': stop, 'estimated_actual_usd': None if billing_unknown else str(actual_cost) if real else '0',
-        'known_usage_estimated_usd': str(actual_cost), 'billing_complete': not billing_unknown,
+        'known_usage_estimated_usd': None if quota else str(actual_cost), 'billing_complete': not billing_unknown,
+        'billing_mode': plan['limits'].get('billing_mode', 'usd'),
+        'error_codes': {r['scenario_id']: 'PROVIDER_BUDGET_EXCEEDED' for r in rows if r['status'] == 'BUDGET_EXCEEDED_NO_RETRY'},
         'elapsed_seconds': round(time.monotonic() - started, 4),
         'statuses': {r['scenario_id']: r['status'] for r in rows}}, secret)
     return folder
