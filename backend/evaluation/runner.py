@@ -34,19 +34,21 @@ def estimate(input_tokens, output_tokens, input_rate, output_rate):
 
 def organizer_quota(limits):
     mode = limits.get('billing_mode', 'usd')
-    if mode not in {'usd', 'organizer_rub_quota'}:
+    if mode not in {'usd', 'organizer_rub_quota', 'organizer_comparison_rub_quota'}:
         raise ValueError('INVALID_BILLING_MODE')
-    return mode == 'organizer_rub_quota'
+    return mode != 'usd'
 
 
 def validate_real_plan(plan):
     limits = plan['limits']
     quota = organizer_quota(limits)
-    if quota and (limits['max_requests'] != 1 or plan['scenario_count'] != 1
-                  or not 1 <= limits['max_input_tokens'] <= 16000
+    paired = limits.get('billing_mode') == 'organizer_comparison_rub_quota'
+    requests = 2 if paired else 1
+    if quota and (limits['max_requests'] != requests or plan['scenario_count'] != requests
+                  or not 1 <= limits['max_input_tokens'] <= (8000 if paired else 16000)
                   or not 1 <= limits['max_output_tokens'] <= 1000
                   or not 1 <= limits['request_seconds'] <= 60
-                  or not 1 <= limits['total_seconds'] <= 60
+                  or not 1 <= limits['total_seconds'] <= (120 if paired else 60)
                   or any(limits.get(k) is not None for k in ('input_rate', 'output_rate', 'budget_usd'))):
         raise ValueError('INVALID_ORGANIZER_LIMITS')
     if (plan['planned_requests'] > limits['max_requests'] or
@@ -186,6 +188,11 @@ async def run(prepared, plan, complete=fake_complete, *, real=False, secret='', 
                     record['provider_outcome'] = 'RESPONSE_RECEIVED'
                     record['status'] = 'RECEIVED'
                     record['checks'] = technical_checks(response['raw'], item['evidence'], case, response['finish_reason'])
+                    if real and plan['limits'].get('billing_mode') == 'organizer_comparison_rub_quota':
+                        if (not record['checks']['schema_valid'] or response['finish_reason'] != 'stop'
+                                or record['checks']['citation_ids_valid'] is False):
+                            stop = True
+                            record['comparison_gate'] = 'STOPPED_TECHNICAL_RESULT_REQUIRES_REVIEW'
                     usage = response.get('usage')
                     if real:
                         if not usage or any(not isinstance(usage.get(k), int) or isinstance(usage[k], bool) or usage[k] < 0

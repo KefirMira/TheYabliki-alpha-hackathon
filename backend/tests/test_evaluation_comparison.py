@@ -60,8 +60,10 @@ def test_comparison_plan_profiles_differ_but_news_and_rag_identical():
         assert request['input_token_planning_bound']<=8000
     assert plan['planned_requests']==2 and plan['limits']['max_requests']==2
     assert plan['estimated_upper_usd'] is None and plan['total_output_token_limit']==2000
-    assert plan['execution_available']=='FAKE_ONLY'
-    # Preparing a paired plan does not weaken the approved single-call organizer mode.
+    assert plan['execution_available']=='EXPLICIT_ORGANIZER_PAIR_ONLY'
+    validate_real_plan(plan)
+    # The separate pair policy does not weaken the original single-call policy.
+    plan['limits']['billing_mode']='organizer_rub_quota'
     with pytest.raises(ValueError,match='INVALID_ORGANIZER_LIMITS'):validate_real_plan(plan)
 
 

@@ -114,6 +114,19 @@ def real_client(config):
         max_retries=0, timeout=60, http_client=DefaultAsyncHttpxClient(follow_redirects=False, trust_env=False))
 
 
+async def complete_with_client(client, config, messages, *, max_tokens, timeout):
+    """One SDK attempt, shared by single and paired evaluation only."""
+    response = await client.with_options(timeout=timeout, max_retries=0).chat.completions.create(
+        model=config['LLM_MODEL'], messages=messages, max_tokens=max_tokens)
+    if not response.choices:
+        raise ValueError('NO_MODEL_CHOICES')
+    usage = response.usage
+    return {'raw': response.choices[0].message.content or '',
+            'finish_reason': response.choices[0].finish_reason, 'model': response.model,
+            'usage': ({k: getattr(usage, k, None) for k in
+                ('prompt_tokens', 'completion_tokens', 'total_tokens')} if usage else None)}
+
+
 async def execute(args):
     cases = scenarios()
     if args.list:
@@ -143,15 +156,7 @@ async def execute(args):
     if args.real and plan['planned_requests']:
         client = real_client(config)
         async def complete(messages, *, max_tokens, timeout):
-            response = await client.with_options(timeout=timeout, max_retries=0).chat.completions.create(
-                model=config['LLM_MODEL'], messages=messages, max_tokens=max_tokens)
-            if not response.choices:
-                raise ValueError('NO_MODEL_CHOICES')
-            usage = response.usage
-            return {'raw': response.choices[0].message.content or '',
-                    'finish_reason': response.choices[0].finish_reason, 'model': response.model,
-                    'usage': ({k: getattr(usage, k, None) for k in
-                        ('prompt_tokens', 'completion_tokens', 'total_tokens')} if usage else None)}
+            return await complete_with_client(client, config, messages, max_tokens=max_tokens, timeout=timeout)
         try:
             folder = await run(prepared, plan, complete, real=True, secret=secret, metadata=metadata)
         finally:
