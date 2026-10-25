@@ -1,3 +1,5 @@
+import { SAVED_PILOT_COMPANY } from '@/shared/constants/savedPilot'
+import { useAppSelector } from '@/store/hooks/redux'
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 
@@ -14,6 +16,9 @@ import ServiceStatusBanner from './ServiceStatusBanner'
  * кроме Пульса, — витрина: приглушено и по клику объясняет, что не работает.
  */
 const AlfaLayout = () => {
+  const pilot = useAppSelector(
+    (state) => state.company.currentCompanyId === SAVED_PILOT_COMPANY
+  )
   usePulseData()
   useFeedPolling()
 
@@ -24,6 +29,13 @@ const AlfaLayout = () => {
         <AlfaHeader />
         <main className="flex min-w-0 flex-1 flex-col gap-4 px-4 pb-10 pt-1 lg:px-10">
           <ServiceStatusBanner />
+          {pilot && (
+            <p role="note" className="rounded-xl bg-white p-3 text-sm">
+              Синтетический пример · сохранённый LLM-пилот. Финансовая
+              достоверность не подтверждена. Даты записей в ленте относятся к
+              импорту; новый анализ не запускался.
+            </p>
+          )}
           <Suspense fallback={<PageLoader />}>
             <Outlet />
           </Suspense>

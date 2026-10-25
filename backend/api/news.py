@@ -1,4 +1,4 @@
-from api.auth import current_actor, AUTH_ERRORS
+from api.auth import news_write, AUTH_ERRORS
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -10,10 +10,10 @@ from schemas.http_docs import APIError
 from services.news_ingestion_service import NewsIdentityConflict, NewsIngestionRetry, NewsIngestionService
 from settings import execution_mode
 
-router = APIRouter(prefix="/api/news", tags=["news ingestion"], dependencies=[Depends(current_actor)], responses=AUTH_ERRORS)
+router = APIRouter(prefix="/api/news", tags=["news ingestion"], dependencies=[Depends(news_write)], responses=AUTH_ERRORS)
 
 
-def get_news_service(sessions=Depends(get_session_factory), actor=Depends(current_actor)):
+def get_news_service(sessions=Depends(get_session_factory), actor=Depends(news_write)):
     return NewsIngestionService(sessions, actor_id=actor.user_id)
 
 
@@ -30,7 +30,7 @@ def demo_policy(news: ExternalNewsInput):
 
 @router.post("", response_model=IngestedNews, status_code=201, responses={
     200: {"model": IngestedNews, "description": "Existing news, unchanged; inspect diagnostics"},
-    403: {"model": APIError, "description": "ACCESS_DENIED для приватного дубликата, без news_id/метаданных; либо DEMO_SYNTHETIC_NEWS_ONLY при нарушении demo policy"},
+    403: {"model": APIError, "description": "ACCESS_DENIED для read-only аккаунта без can_analyze membership либо для приватного дубликата, без news_id/метаданных; либо DEMO_SYNTHETIC_NEWS_ONLY при нарушении demo policy"},
     409: {"model": APIError, "description": "Pair and URL identify different stored news"},
     503: {"model": APIError, "description": "Database unavailable or bounded concurrency retry required"},
 }, description="EXTERNAL без AI. Обязательны title/content (до 500/100000). Пара source_name+source_id — основной ключ, канонический HTTP(S) URL — дополнительный. Без идентификаторов дедупликации нет. Дубликат не перезаписывается; даты с timezone. Demo: synthetic-demo / SYNTH-* / example.invalid.")

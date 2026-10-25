@@ -93,3 +93,15 @@ async def logout(request: Request, actor=Depends(current_actor)):
     except (SQLAlchemyError,OSError,TimeoutError):
         raise unavailable() from None
     return Response(status_code=204,headers={'Cache-Control':'no-store'})
+
+
+async def news_write(request: Request, actor=Depends(current_actor)):
+    """Ingestion is a write operation; a read-only membership is insufficient."""
+    try:
+        async with factory(request)() as session:
+            memberships = await AuthRepository(session).memberships(actor.user_id)
+        if not any(row['can_analyze'] for row in memberships):
+            raise denied()
+        return actor
+    except (SQLAlchemyError, OSError, TimeoutError):
+        raise unavailable() from None

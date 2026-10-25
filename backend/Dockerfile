@@ -13,6 +13,8 @@ COPY services ./services
 COPY company_import ./company_import
 COPY fixtures/gateway_macro_v1.json ./fixtures/gateway_macro_v1.json
 COPY fixtures/integration_demo.sql ./fixtures/integration_demo.sql
+COPY saved_pilot_demo.py ./saved_pilot_demo.py
+COPY fixtures/saved_llm_pilot_v1.json ./fixtures/saved_llm_pilot_v1.json
 USER backend
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

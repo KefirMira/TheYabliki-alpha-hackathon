@@ -30,8 +30,8 @@ def legacy_http_contract_auth_boundary(request):
         return
     from types import SimpleNamespace
     from main import app
-    from api.auth import current_actor, company_read, company_write, legacy_denied
-    keys = [current_actor, company_read, company_write, legacy_denied]
+    from api.auth import current_actor, company_read, company_write, legacy_denied, news_write
+    keys = [current_actor, company_read, company_write, legacy_denied, news_write]
     previous = dict(app.dependency_overrides)
     actor = SimpleNamespace(user_id=None)
     for key in keys:

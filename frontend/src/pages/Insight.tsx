@@ -1,3 +1,4 @@
+import { SavedPilotNotice } from '@/widgets/Insight/SavedPilotNotice'
 import { useEffect } from 'react'
 import { Bookmark, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -147,6 +148,7 @@ const Insight = () => {
 
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-4">
+          <SavedPilotNotice detail={detail} />
           <Card className="gap-3.5 p-5 md:p-7">
             <div className="flex items-center justify-between gap-2">
               <InsightKindTag insight={insight} withIcon={false} />

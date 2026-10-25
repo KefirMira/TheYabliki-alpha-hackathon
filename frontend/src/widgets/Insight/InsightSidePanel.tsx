@@ -7,7 +7,12 @@ import type { IInsightDetail } from '@/store/models/IPulse'
 const AnalysisLog = ({ detail }: { detail: IInsightDetail }) => (
   <div className="flex flex-col gap-3.5">
     <span className="text-[13px] text-ink-3">
-      Как Пульс пришёл к выводу · {detail.logTime}
+      {detail.savedPilot
+        ? 'Исторический trace пилота от ' +
+          detail.savedPilot.pilotDate +
+          '. Время импорта: ' +
+          detail.logTime
+        : 'Как Пульс пришёл к выводу · ' + detail.logTime}
     </span>
     {detail.log.map((step) => (
       <div

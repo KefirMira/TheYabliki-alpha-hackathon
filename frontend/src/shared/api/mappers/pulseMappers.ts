@@ -1,3 +1,4 @@
+import { SAVED_PILOT_COMPANY } from '@/shared/constants/savedPilot'
 import { format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
@@ -48,7 +49,12 @@ export const mapFeedItem = (
   relevanceLevel:
     item.relevance && item.relevance !== 'unknown' ? item.relevance : undefined,
   title: item.summary?.trim() || 'Инсайт без описания',
-  updated: `Анализ от ${formatDay(item.created_at)}`,
+  updated:
+    (item.company_id === SAVED_PILOT_COMPANY
+      ? 'Импорт сохранённого результата'
+      : 'Анализ') +
+    ' от ' +
+    formatDay(item.created_at),
   ageHours: Math.max(0, (now - Date.parse(item.created_at)) / HOUR_MS),
 })
 
@@ -163,6 +169,54 @@ const financialReviewOf = (
   }
 }
 
+const savedPilotOf = (card: IInsightCard): IInsightDetail['savedPilot'] => {
+  const value = card.validation.saved_pilot_import as
+    Record<string, unknown> | undefined
+  if (
+    !value ||
+    value.version !== 'saved-llm-pilot-v1' ||
+    value.synthetic !== true
+  )
+    return undefined
+  const usage = value.usage as Record<string, unknown> | undefined
+  if (
+    !usage ||
+    ![
+      'prompt_tokens',
+      'completion_tokens',
+      'reasoning_tokens',
+      'total_tokens',
+    ].every((k) => Number.isInteger(usage[k]) && Number(usage[k]) >= 0)
+  )
+    return undefined
+  if (
+    !['model', 'pilot_date', 'imported_at', 'artifact_sha256'].every(
+      (k) => typeof value[k] === 'string'
+    ) ||
+    typeof value.service_seconds !== 'number'
+  )
+    return undefined
+  const trace = card.validation.orchestration as
+    { events?: unknown } | undefined
+  const events = Array.isArray(trace?.events)
+    ? trace.events
+        .filter(
+          (e): e is { tool: string; reason: string } =>
+            e && typeof e.tool === 'string' && typeof e.reason === 'string'
+        )
+        .map((e) => ({ tool: e.tool, reason: e.reason }))
+    : []
+  return {
+    model: value.model as string,
+    pilotDate: value.pilot_date as string,
+    importedAt: value.imported_at as string,
+    artifactSha256: value.artifact_sha256 as string,
+    duration: value.service_seconds,
+    usage: usage as NonNullable<IInsightDetail['savedPilot']>['usage'],
+    events,
+  }
+}
+
 /** Карточка API → шапка инсайта и содержимое страницы. */
 export const mapInsightCard = (
   card: IInsightCard,
@@ -191,7 +245,11 @@ export const mapInsightCard = (
       actions: card.recommendations,
       sources: card.sources.map((source) => ({
         name: source.document ?? 'Источник',
-        description: [source.page && `стр. ${source.page}`, source.date]
+        description: [
+          'Источник ' + String(source.id),
+          source.page && `стр. ${source.page}`,
+          source.date,
+        ]
           .filter(Boolean)
           .join(' · '),
       })),
@@ -202,6 +260,7 @@ export const mapInsightCard = (
       })),
       confidence,
       financialReview: financialReviewOf(card),
+      savedPilot: savedPilotOf(card),
       warnings,
       logTime: formatDayTime(card.created_at),
       log: analysisLog(card),

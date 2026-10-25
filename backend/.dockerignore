@@ -25,3 +25,5 @@
 !fixtures/gateway_macro_v1.json
 !integration_demo.py
 !fixtures/integration_demo.sql
+!saved_pilot_demo.py
+!fixtures/saved_llm_pilot_v1.json

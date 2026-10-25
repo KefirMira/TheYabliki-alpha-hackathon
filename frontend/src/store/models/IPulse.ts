@@ -58,6 +58,20 @@ export interface IInsightEvidence {
 export interface IInsightDetail {
   fact: string
   synthetic?: boolean
+  savedPilot?: {
+    model: string
+    pilotDate: string
+    importedAt: string
+    duration: number
+    usage: {
+      prompt_tokens: number
+      completion_tokens: number
+      reasoning_tokens: number
+      total_tokens: number
+    }
+    artifactSha256: string
+    events: { tool: string; reason: string }[]
+  }
   impact: string
   /** null — у банка нет опубликованной позиции по теме. */
   bank: IBankPosition | null

@@ -1,0 +1,9 @@
+# These existing frozen artifacts are hashed as raw bytes by the evaluation.
+# Preserve their ORIGINAL frozen EOL on Windows and Linux; do not change freeze hashes.
+backend/services/financial_scope.py text eol=lf
+backend/services/financial_review_service.py text eol=lf
+backend/services/financial_assertion_rules.py text eol=crlf
+backend/services/local_adaptive_service.py text eol=lf
+backend/evaluation/quality.py text eol=lf
+backend/evaluation/quality_scope.py text eol=lf
+backend/evaluation/quality_holdout_v2.json text eol=lf

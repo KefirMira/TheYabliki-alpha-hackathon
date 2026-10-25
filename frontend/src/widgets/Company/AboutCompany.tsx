@@ -3,7 +3,7 @@ import Card from '@/shared/ui/Card'
 import type { ICompanyProfile } from '@/store/models/ICompany'
 
 /**
- * «О компании»: название из профиля банка. Описания бизнеса в API нет —
+ * «О компании»: название из сохранённого профиля. Описания бизнеса в API нет —
  * блок описания не показываем, а не подставляем черновик.
  */
 const AboutCompany = ({ profile }: { profile: ICompanyProfile }) => (
@@ -15,7 +15,7 @@ const AboutCompany = ({ profile }: { profile: ICompanyProfile }) => (
       </span>
       <span className="text-[13px] text-ink-3">
         {profile.name_is_placeholder
-          ? 'Название в данных банка не указано'
+          ? 'Название в сохранённом профиле не указано'
           : `Идентификатор ${profile.company_id}`}
       </span>
     </div>

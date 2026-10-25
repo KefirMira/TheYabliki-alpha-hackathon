@@ -277,7 +277,7 @@ export const FinancialReviewSection = ({
     <SectionCard title="Финансовая самопроверка" className="col-span-full">
       {detail.synthetic && (
         <p className="text-sm font-semibold">
-          Синтетический учебный пример. Не использовать для бизнес-решений.
+          Синтетический пример. Не использовать для бизнес-решений.
         </p>
       )}
       <p className="text-sm text-ink-2">

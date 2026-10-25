@@ -1,0 +1,485 @@
+{
+  "version": "saved-llm-pilot-v1",
+  "content": "{\"relevance\":\"medium\",\"summary\":\"Компания относится к синтетическому производству оборудования (ОКВЭД 28.99) и имеет признак кредитного продукта, но это не доказывает долг; кредитная экспозиция и условия отсутствуют. Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].\",\"risks\":[\"Неизвестны кредитная экспозиция и условия, поэтому нельзя оценить риск изменения полной стоимости займа; неизменная ставка этого не доказывает [Источник 1].\",\"Условная гипотеза: кредитование, спрос и инвестиции в производстве оборудования могут зависеть от ставок [Источник 2].\"],\"opportunities\":[\"Условно: сохранение ключевой ставки может снизить неопределённость при планировании, если это отражается в условиях финансирования [Источник 2].\",\"Для производства оборудования возможна корректировка инвестиционных решений с учётом ставок, но это не установленный факт [Источник 2].\"],\"recommendations\":[\"Запросить данные о кредитной экспозиции и условиях договора, чтобы оценить полную стоимость кредита [Источник 1].\",\"Проверить влияние ставок на спрос и инвестиции в отрасли как условную гипотезу [Источник 2].\"]}",
+  "sources": [
+    {
+      "id": 1,
+      "document": "synthetic-gateway-rate.txt",
+      "page": 1,
+      "score": 0.1431
+    },
+    {
+      "id": 2,
+      "document": "synthetic-gateway-production.txt",
+      "page": 1,
+      "score": 0.0656
+    }
+  ],
+  "validation": {
+    "passed": false,
+    "warnings": [
+      "SYNTHETIC_GATEWAY_ANALYSIS_NOT_FOR_DECISIONS",
+      "FACTUAL_ACCURACY_NOT_ASSESSED",
+      "FINANCIAL_CORRECTNESS_NOT_ESTABLISHED",
+      "CREDIT_TERMS_UNKNOWN",
+      "MISSING_CREDIT_TERMS_QUALIFICATION",
+      "FINANCIAL_NUMBER_ATTRIBUTION_UNKNOWN",
+      "CITATION_ENTAILMENT_UNKNOWN",
+      "CITED_SOURCE_NUMBER_NOT_FOUND"
+    ]
+  },
+  "financial_review": {
+    "version": "financial-review-v1",
+    "status": "NEEDS_REVIEW",
+    "findings": [
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "Компания относится к синтетическому производству оборудования (ОКВЭД 28.99) и имеет признак кредитного продукта,",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "MISSING_CREDIT_TERMS_QUALIFICATION",
+        "severity": "WARNING",
+        "disposition": "NEEDS_REVIEW",
+        "field": "summary",
+        "claim": "Компания относится к синтетическому производству оборудования (ОКВЭД 28.99) и имеет признак кредитного продукта,",
+        "claim_truncated": false,
+        "explanation": "Утверждение о компании/договоре не обозначено как условное при неизвестных кредитных условиях. Эвристика не определяет истинность утверждения.",
+        "source_ids": []
+      },
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "но это не доказывает долг;",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "кредитная экспозиция и условия отсутствуют.",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "FINANCIAL_NUMBER_ATTRIBUTION_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Число встречается во входах, но это не доказывает совпадение величины, субъекта, единиц или периода. Требуется проверка атрибуции.",
+        "source_ids": []
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          1
+        ]
+      },
+      {
+        "code": "CITED_SOURCE_NUMBER_NOT_FOUND",
+        "severity": "WARNING",
+        "disposition": "NEEDS_REVIEW",
+        "field": "summary",
+        "claim": "Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Числовая форма отсутствует в указанном фрагменте. Возможен иной источник или расчёт, но эта ссылка пока не обосновывает число.",
+        "source_ids": [
+          1
+        ]
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "summary",
+        "claim": "Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          2
+        ]
+      },
+      {
+        "code": "CITED_SOURCE_NUMBER_NOT_FOUND",
+        "severity": "WARNING",
+        "disposition": "NEEDS_REVIEW",
+        "field": "summary",
+        "claim": "Сохранение ключевой ставки на уровне 14% не доказывает неизменность стоимости кредита, а влияние на отрасль условно [Источник 1][Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Числовая форма отсутствует в указанном фрагменте. Возможен иной источник или расчёт, но эта ссылка пока не обосновывает число.",
+        "source_ids": [
+          2
+        ]
+      },
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "risks[0]",
+        "claim": "Неизвестны кредитная экспозиция и условия, поэтому нельзя оценить риск изменения полной стоимости займа;",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "risks[0]",
+        "claim": "неизменная ставка этого не доказывает [Источник 1].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          1
+        ]
+      },
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "risks[1]",
+        "claim": "Условная гипотеза: кредитование, спрос и инвестиции в производстве оборудования могут зависеть от ставок [Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "risks[1]",
+        "claim": "Условная гипотеза: кредитование, спрос и инвестиции в производстве оборудования могут зависеть от ставок [Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          2
+        ]
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "opportunities[0]",
+        "claim": "Условно: сохранение ключевой ставки может снизить неопределённость при планировании, если это отражается в условиях финансирования [Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          2
+        ]
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "opportunities[1]",
+        "claim": "но это не установленный факт [Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          2
+        ]
+      },
+      {
+        "code": "CREDIT_TERMS_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "recommendations[0]",
+        "claim": "Запросить данные о кредитной экспозиции и условиях договора, чтобы оценить полную стоимость кредита [Источник 1].",
+        "claim_truncated": false,
+        "explanation": "Текущая разрешённая проекция не содержит подтверждённых условий кредитного договора. Обоснованность индивидуального финансового вывода не установлена.",
+        "source_ids": []
+      },
+      {
+        "code": "MISSING_CREDIT_TERMS_QUALIFICATION",
+        "severity": "WARNING",
+        "disposition": "NEEDS_REVIEW",
+        "field": "recommendations[0]",
+        "claim": "Запросить данные о кредитной экспозиции и условиях договора, чтобы оценить полную стоимость кредита [Источник 1].",
+        "claim_truncated": false,
+        "explanation": "Утверждение о компании/договоре не обозначено как условное при неизвестных кредитных условиях. Эвристика не определяет истинность утверждения.",
+        "source_ids": []
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "recommendations[0]",
+        "claim": "Запросить данные о кредитной экспозиции и условиях договора, чтобы оценить полную стоимость кредита [Источник 1].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          1
+        ]
+      },
+      {
+        "code": "CITATION_ENTAILMENT_UNKNOWN",
+        "severity": "INFO",
+        "disposition": "UNKNOWN",
+        "field": "recommendations[1]",
+        "claim": "Проверить влияние ставок на спрос и инвестиции в отрасли как условную гипотезу [Источник 2].",
+        "claim_truncated": false,
+        "explanation": "Источник существует, но поддержка конкретного тезиса семантически не установлена. Совпадение слов, чисел или даже наличие цитаты не доказывает достоверность.",
+        "source_ids": [
+          2
+        ]
+      }
+    ],
+    "blocking": false,
+    "coverage_complete": true,
+    "financial_correctness": "UNKNOWN",
+    "human_review_required": true
+  },
+  "orchestration": {
+    "version": "synthetic-gateway-v1",
+    "initial_plan": [
+      "PREPARE",
+      "DECIDE",
+      "DRAFT",
+      "VALIDATE",
+      "REVIEW",
+      "DECIDE",
+      "PERSIST"
+    ],
+    "status": "COMPLETED",
+    "events": [
+      {
+        "tool": "PREPARE",
+        "reason": "LOCAL_SNAPSHOT",
+        "observation": null,
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      },
+      {
+        "tool": "OBSERVE",
+        "reason": "LOCAL_OBSERVATION",
+        "observation": {
+          "stage": "evidence",
+          "missing_context": 4,
+          "context_partial": false,
+          "source_count": 2,
+          "source_support": "UNKNOWN",
+          "searched": false,
+          "blocker": false,
+          "finding_codes": [],
+          "correctable_fields": []
+        },
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      },
+      {
+        "tool": "DECIDE",
+        "reason": "EVIDENCE_READY",
+        "observation": null,
+        "decision": {
+          "action": "DRAFT",
+          "reason": "EVIDENCE_READY",
+          "field": null
+        },
+        "remaining_plan": [
+          "DRAFT",
+          "VALIDATE",
+          "REVIEW",
+          "DECIDE",
+          "PERSIST"
+        ],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      },
+      {
+        "tool": "DRAFT",
+        "reason": "SYNTHETIC_SDK_COMPLETED",
+        "observation": null,
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": "8e4cec5e29b6472de3db565d91eed9a266dd41bb5944508de32319343a6601bc",
+        "field": null
+      },
+      {
+        "tool": "VALIDATE",
+        "reason": "SCHEMA_AND_EXACT_PROVENANCE",
+        "observation": null,
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": "0d0c3b750d63f9b8fba82001664a138c82ea4d6fdcbe49b5aaf43f2b41918290",
+        "field": null
+      },
+      {
+        "tool": "REVIEW",
+        "reason": "FINANCIAL_CORRECTNESS_UNKNOWN",
+        "observation": {
+          "stage": "review",
+          "missing_context": 4,
+          "context_partial": false,
+          "source_count": 2,
+          "source_support": "UNKNOWN",
+          "searched": false,
+          "blocker": false,
+          "finding_codes": [
+            "CREDIT_TERMS_UNKNOWN",
+            "MISSING_CREDIT_TERMS_QUALIFICATION",
+            "FINANCIAL_NUMBER_ATTRIBUTION_UNKNOWN",
+            "CITATION_ENTAILMENT_UNKNOWN",
+            "CITED_SOURCE_NUMBER_NOT_FOUND"
+          ],
+          "correctable_fields": []
+        },
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": "19e9342d7ad714227725e552becb139675d472a5d6899e355a0197b3a26ec65d",
+        "field": null
+      },
+      {
+        "tool": "OBSERVE",
+        "reason": "LOCAL_OBSERVATION",
+        "observation": {
+          "stage": "review",
+          "missing_context": 4,
+          "context_partial": false,
+          "source_count": 2,
+          "source_support": "UNKNOWN",
+          "searched": false,
+          "blocker": false,
+          "finding_codes": [
+            "CREDIT_TERMS_UNKNOWN",
+            "MISSING_CREDIT_TERMS_QUALIFICATION",
+            "FINANCIAL_NUMBER_ATTRIBUTION_UNKNOWN",
+            "CITATION_ENTAILMENT_UNKNOWN",
+            "CITED_SOURCE_NUMBER_NOT_FOUND"
+          ],
+          "correctable_fields": []
+        },
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      },
+      {
+        "tool": "DECIDE",
+        "reason": "REVIEW_REQUIRED",
+        "observation": null,
+        "decision": {
+          "action": "KEEP_WITH_WARNINGS",
+          "reason": "REVIEW_REQUIRED",
+          "field": null
+        },
+        "remaining_plan": [
+          "PERSIST"
+        ],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      },
+      {
+        "tool": "KEEP_WITH_WARNINGS",
+        "reason": "HUMAN_REVIEW_REQUIRED",
+        "observation": null,
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      },
+      {
+        "tool": "PERSIST",
+        "reason": "ATOMIC_COMMIT",
+        "observation": null,
+        "decision": null,
+        "remaining_plan": [],
+        "source_ids": [],
+        "before_sha256": null,
+        "after_sha256": null,
+        "field": null
+      }
+    ],
+    "decisions": 2,
+    "drafts": 1,
+    "searches": 0,
+    "corrections": 0,
+    "reviews": 1,
+    "paid_calls": 1,
+    "financial_correctness": "UNKNOWN",
+    "human_review_required": true,
+    "transport": "organizer",
+    "sdk_requests": 1,
+    "outbound_sha256": "8b218f5f668e0874895b606644f462ce39fdd5fd55b3309e0a8597998f36fa55",
+    "usage": {
+      "prompt_tokens": 611,
+      "completion_tokens": 1784,
+      "total_tokens": 2395,
+      "reasoning_tokens": 1452
+    },
+    "finish_reason": "stop",
+    "request_outcome": "RESPONSE_VALIDATED",
+    "elapsed_ms": 15530,
+    "error_code": null
+  },
+  "metadata": {
+    "model": "deepseek/deepseek-v4.1-flash",
+    "gateway": "changellenge.up.railway.app",
+    "pilot_date": "2026-10-25",
+    "service_seconds": 15.688,
+    "usage": {
+      "prompt_tokens": 611,
+      "completion_tokens": 1784,
+      "total_tokens": 2395,
+      "reasoning_tokens": 1452
+    },
+    "finish_reason": "stop",
+    "historical_requests": 1,
+    "fixture_sha256": "e69222b04f5a2fbabf651d258efd173bf522a39f96b5b57eed15d32b8e685dc0",
+    "dto_sha256": "8b218f5f668e0874895b606644f462ce39fdd5fd55b3309e0a8597998f36fa55",
+    "wire_sha256": "49c03098313774e5c70237f9d442300022589306548c318e45d4aa608cdaed3a",
+    "original_execution_sha256": "0412f586c596fa14b6dccdcfc6e1039203f673a955a87b01b646c6522df0dafc",
+    "original_response_sha256": "e8a1c603352a6466b8242b86cc6a563a19cef55e4dd52ea16ac794975d1fee46",
+    "content_sha256": "f0d695ec9ad8d539b540470f0e92b657e0828a83cbfcecc3b50ada4db8091ef3"
+  }
+}
