@@ -61,8 +61,6 @@ describe('mapFeedItem', () => {
     const insight = mapFeedItem(feedItem({ type: null }), NOW)
     expect(insight.kind).toBe('info')
     expect(insight.relevanceLevel).toBeUndefined()
-    expect(insight.level).toBeUndefined()
-    expect(insight.chips).toEqual([])
   })
 
   it('релевантность словами переносится как есть', () => {
@@ -106,20 +104,12 @@ describe('bankPositionFrom', () => {
 })
 
 describe('mapInsightCard', () => {
-  it('блоков без данных в API нет — списки пустые', () => {
-    const { detail } = mapInsightCard(card(), NOW)
-    expect(detail.scenarios).toEqual([])
-    expect(detail.figures).toEqual([])
-    expect(detail.affected).toEqual([])
-    expect(detail.questions).toEqual([])
-  })
-
   it('новость — факт, summary — вывод, рекомендации — действия', () => {
     const { insight, detail } = mapInsightCard(card(), NOW)
     expect(insight.title).toBe('Демо-новость 2')
     expect(detail.fact).toBe('Текст новости')
     expect(detail.impact).toBe('Синтетический инсайт 2')
-    expect(detail.actions).toEqual([{ title: 'Рекомендация', description: '' }])
+    expect(detail.actions).toEqual(['Рекомендация'])
   })
 
   it('проверка с замечаниями видна в выводе и в ходе анализа', () => {

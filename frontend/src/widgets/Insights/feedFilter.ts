@@ -1,7 +1,5 @@
 import type {
   IPulseInsight,
-  PulseFactor,
-  PulseHorizon,
   PulseKind,
   RelevanceLevel,
 } from '@/store/models/IPulse'
@@ -11,29 +9,24 @@ export type FeedSort = 'relevance' | 'time'
 
 export interface FeedFilters {
   type: FeedType
-  factor: PulseFactor | null
-  /** null — «Сейчас»: без ограничения по горизонту. */
-  horizon: Exclude<PulseHorizon, 'now'> | null
   favoritesOnly: boolean
   sort: FeedSort
 }
 
 export interface FeedResult {
   items: IPulseInsight[]
-  /** Счётчики вкладок: после фильтров фактора и горизонта, до типа. */
+  /** Счётчики вкладок по типам — без учёта выбранного типа. */
   counts: Record<FeedType, number>
 }
 
 const LEVEL_SCORE: Record<RelevanceLevel, number> = {
-  high: 90,
-  medium: 60,
-  low: 30,
+  high: 3,
+  medium: 2,
+  low: 1,
 }
 
-/** Релевантность числом: % из макета или уровень словами из API. */
 const relevanceScore = (insight: IPulseInsight) =>
-  insight.relevance ??
-  (insight.relevanceLevel ? LEVEL_SCORE[insight.relevanceLevel] : 0)
+  insight.relevanceLevel ? LEVEL_SCORE[insight.relevanceLevel] : 0
 
 const byRelevance = (a: IPulseInsight, b: IPulseInsight) =>
   // Новые — первыми, дальше по релевантности, при равенстве — свежие.
@@ -49,25 +42,18 @@ export const filterFeed = (
   filters: FeedFilters,
   favorites: string[]
 ): FeedResult => {
-  const base = insights.filter(
-    (insight) =>
-      (!filters.factor || insight.factor === filters.factor) &&
-      (!filters.horizon || insight.horizon === filters.horizon)
-  )
-
   const counts: Record<FeedType, number> = {
-    all: base.length,
+    all: insights.length,
     risk: 0,
     opp: 0,
-    hyp: 0,
     mixed: 0,
     info: 0,
   }
-  base.forEach((insight) => {
+  insights.forEach((insight) => {
     counts[insight.kind] += 1
   })
 
-  const items = base
+  const items = insights
     .filter(
       (insight) =>
         (filters.type === 'all' || insight.kind === filters.type) &&
@@ -78,18 +64,13 @@ export const filterFeed = (
   return { items, counts }
 }
 
-const FEED_TYPES: FeedType[] = ['all', 'risk', 'opp', 'hyp', 'mixed', 'info']
-const FACTORS: PulseFactor[] = ['rate', 'fuel', 'cp', 'dem', 'reg', 'fx']
+const FEED_TYPES: FeedType[] = ['all', 'risk', 'opp', 'mixed', 'info']
 
 /** Фильтры из адреса: незнакомые значения игнорируются. */
 export const filtersFromParams = (params: URLSearchParams): FeedFilters => {
   const type = params.get('type') as FeedType
-  const factor = params.get('factor') as PulseFactor
-  const horizon = params.get('h')
   return {
     type: FEED_TYPES.includes(type) ? type : 'all',
-    factor: FACTORS.includes(factor) ? factor : null,
-    horizon: horizon === 'm3' || horizon === 'm12' ? horizon : null,
     favoritesOnly: params.get('fav') === '1',
     sort: params.get('sort') === 'time' ? 'time' : 'relevance',
   }

@@ -1,105 +1,83 @@
 import { describe, expect, it } from 'vitest'
 
-import { FEED_INSIGHT_IDS, PULSE_INSIGHTS } from '@/shared/mocks/pulse'
+import type { IPulseInsight } from '@/store/models/IPulse'
 
 import { type FeedFilters, filterFeed, filtersFromParams } from './feedFilter'
 
-const feed = FEED_INSIGHT_IDS.map((id) => PULSE_INSIGHTS[id])
+const insight = (
+  id: string,
+  patch: Partial<IPulseInsight> = {}
+): IPulseInsight => ({
+  id,
+  kind: 'risk',
+  title: `Инсайт ${id}`,
+  updated: 'Анализ от 2 января 2026',
+  ageHours: Number(id),
+  ...patch,
+})
+
+// Возраст в часах = id: «1» — самый свежий.
+const feed = [
+  insight('1', { kind: 'info' }),
+  insight('2', { kind: 'opp', relevanceLevel: 'high' }),
+  insight('3', { relevanceLevel: 'medium' }),
+  insight('4', { kind: 'mixed', isNew: true }),
+  insight('5', { relevanceLevel: 'high' }),
+]
 
 const filters = (overrides: Partial<FeedFilters> = {}): FeedFilters => ({
   type: 'all',
-  factor: null,
-  horizon: null,
   favoritesOnly: false,
   sort: 'relevance',
   ...overrides,
 })
 
 describe('filterFeed', () => {
-  it('счётчики вкладок совпадают с макетом: 10 · 4 · 2 · 4', () => {
-    const { counts } = filterFeed(feed, filters(), [])
-    expect(counts).toEqual({
-      all: 10,
-      risk: 4,
-      opp: 2,
-      hyp: 4,
-      mixed: 0,
-      info: 0,
+  it('счётчики вкладок по типам из API', () => {
+    expect(filterFeed(feed, filters(), []).counts).toEqual({
+      all: 5,
+      risk: 2,
+      opp: 1,
+      mixed: 1,
+      info: 1,
     })
   })
 
-  it('по важности: новое первым, дальше по релевантности', () => {
+  it('по важности: новое первым, дальше релевантность, при равенстве — свежие', () => {
     const { items } = filterFeed(feed, filters(), [])
-    expect(items.map((i) => i.id)).toEqual([
-      'eu',
-      'rate',
-      'fuel',
-      'supp',
-      'ofz',
-      'budget',
-      'cp',
-      'h1',
-      'dem',
-      'h2',
-    ])
+    expect(items.map((i) => i.id)).toEqual(['4', '2', '5', '3', '1'])
   })
 
   it('фильтр типа не меняет счётчики вкладок', () => {
-    const { items, counts } = filterFeed(feed, filters({ type: 'hyp' }), [])
-    expect(items.every((i) => i.kind === 'hyp')).toBe(true)
-    expect(counts.all).toBe(10)
-  })
-
-  it('фактор и горизонт сужают и ленту, и счётчики', () => {
-    const { items, counts } = filterFeed(
-      feed,
-      filters({ factor: 'fuel', horizon: 'm3' }),
-      []
-    )
-    expect(items.map((i) => i.id).sort()).toEqual(['h1', 'supp'])
-    expect(counts).toEqual({
-      all: 2,
-      risk: 1,
-      opp: 0,
-      hyp: 1,
-      mixed: 0,
-      info: 0,
-    })
+    const { items, counts } = filterFeed(feed, filters({ type: 'risk' }), [])
+    expect(items.map((i) => i.id)).toEqual(['5', '3'])
+    expect(counts.all).toBe(5)
   })
 
   it('только избранное', () => {
     const { items } = filterFeed(feed, filters({ favoritesOnly: true }), [
-      'rate',
-      'h1',
+      '3',
+      '1',
     ])
-    expect(items.map((i) => i.id)).toEqual(['rate', 'h1'])
+    expect(items.map((i) => i.id)).toEqual(['3', '1'])
   })
 
   it('по времени: свежие первыми', () => {
     const { items } = filterFeed(feed, filters({ sort: 'time' }), [])
-    expect(items[0].id).toBe('eu')
-    expect(items.at(-1)?.id).toBe('dem')
+    expect(items.map((i) => i.id)).toEqual(['1', '2', '3', '4', '5'])
   })
 })
 
 describe('filtersFromParams', () => {
   it('читает фильтры из адреса', () => {
     expect(
-      filtersFromParams(
-        new URLSearchParams('type=risk&factor=rate&h=m12&fav=1&sort=time')
-      )
-    ).toEqual({
-      type: 'risk',
-      factor: 'rate',
-      horizon: 'm12',
-      favoritesOnly: true,
-      sort: 'time',
-    })
+      filtersFromParams(new URLSearchParams('type=mixed&fav=1&sort=time'))
+    ).toEqual({ type: 'mixed', favoritesOnly: true, sort: 'time' })
   })
 
   it('незнакомые значения — фильтры по умолчанию', () => {
-    expect(
-      filtersFromParams(new URLSearchParams('type=x&factor=y&h=now&sort=z'))
-    ).toEqual(filters())
+    expect(filtersFromParams(new URLSearchParams('type=x&sort=z'))).toEqual(
+      filters()
+    )
   })
 })

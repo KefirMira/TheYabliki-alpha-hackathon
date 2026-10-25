@@ -12,7 +12,7 @@ import {
   HOME_ACCOUNTS,
   OPERATIONS,
   PAYMENT_STATUSES,
-} from '@/shared/mocks/pulse'
+} from '@/shared/mocks/bank'
 import Card from '@/shared/ui/Card'
 import DemoStub from '@/shared/ui/DemoStub'
 

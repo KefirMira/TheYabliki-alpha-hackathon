@@ -7,18 +7,15 @@ import { useFavorites } from '@/hooks/useFavorites'
 import { useInsightCard } from '@/hooks/useInsightCard'
 import BackLink from '@/shared/ui/BackLink'
 import Card from '@/shared/ui/Card'
-import Chip from '@/shared/ui/Chip'
 import LayerTag from '@/shared/ui/LayerTag'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
 import { markInsightSeen } from '@/store/reducers/InsightsSlice'
 import InsightSidePanel from '@/widgets/Insight/InsightSidePanel'
 import {
   Actions,
-  Affected,
   BankPosition,
   Evidence,
   RisksOpportunities,
-  Scenarios,
   Sources,
   WhatHappened,
   WhatItMeans,
@@ -112,7 +109,7 @@ const Insight = () => {
 
   const { insight, detail } = data
   const isFavorite = favorites.includes(insight.id)
-  const relevance = relevanceText(insight, true)
+  const relevance = relevanceText(insight)
 
   const handleNotRelevant = () => {
     hide(insight.id)
@@ -166,13 +163,9 @@ const Insight = () => {
                 {insight.meaning}
               </p>
             )}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {insight.chips.map((chip) => (
-                <Chip key={chip}>{chip}</Chip>
-              ))}
-              <span className="flex-1" />
-              <span className="text-[13px] text-ink-3">{insight.updated}</span>
-            </div>
+            <span className="self-end text-[13px] text-ink-3">
+              {insight.updated}
+            </span>
           </Card>
 
           <div className="flex flex-wrap items-center gap-2 px-1">
@@ -182,7 +175,6 @@ const Insight = () => {
             <LayerTag layer="fact" />
             <LayerTag layer="bank" />
             <LayerTag layer="ai" />
-            {detail.scenarios.length > 0 && <LayerTag layer="hyp" />}
           </div>
 
           <div className="grid items-stretch gap-4 md:grid-cols-2">
@@ -192,9 +184,7 @@ const Insight = () => {
             {(detail.risks.length > 0 || detail.opportunities.length > 0) && (
               <RisksOpportunities detail={detail} />
             )}
-            {detail.affected.length > 0 && <Affected detail={detail} />}
             {detail.actions.length > 0 && <Actions detail={detail} />}
-            {detail.scenarios.length > 0 && <Scenarios detail={detail} />}
             <Sources detail={detail} />
             {detail.evidence.length > 0 && <Evidence detail={detail} />}
           </div>

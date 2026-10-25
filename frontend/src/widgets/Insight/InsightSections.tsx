@@ -11,15 +11,8 @@ import {
 import { cn } from '@/lib/utils'
 import AlfaLogo from '@/shared/ui/AlfaLogo'
 import Card from '@/shared/ui/Card'
-import ImpactBars from '@/shared/ui/ImpactBars'
 import LayerTag, { type InfoLayer } from '@/shared/ui/LayerTag'
-import Tag from '@/shared/ui/Tag'
-import type {
-  IBankPosition,
-  IInsightDetail,
-  ScenarioLikelihood,
-} from '@/store/models/IPulse'
-import { LEVEL_LABEL } from '@/widgets/Insights/insightView'
+import type { IBankPosition, IInsightDetail } from '@/store/models/IPulse'
 
 /** Заголовок блока инсайта с тегом слоя справа. */
 const SectionCard = ({
@@ -53,21 +46,6 @@ export const WhatHappened = ({ detail }: { detail: IInsightDetail }) => (
 export const WhatItMeans = ({ detail }: { detail: IInsightDetail }) => (
   <SectionCard title="Что это значит для компании" layer="ai">
     <p className="text-[15px] leading-[23px] text-pretty">{detail.impact}</p>
-    {detail.figures.length > 0 && (
-      <div className="mt-auto grid grid-cols-2 gap-3">
-        {detail.figures.map((figure) => (
-          <div
-            key={figure.label}
-            className="flex flex-col gap-0.5 rounded-[14px] bg-surface-page px-3.5 py-3"
-          >
-            <span className="whitespace-nowrap text-[22px] font-bold tracking-[-0.01em]">
-              {figure.value}
-            </span>
-            <span className="text-[13px] text-ink-3">{figure.label}</span>
-          </div>
-        ))}
-      </div>
-    )}
   </SectionCard>
 )
 
@@ -118,16 +96,6 @@ export const BankPosition = ({ bank }: { bank: IBankPosition | null }) => {
         <p className="max-w-[1000px] text-lg leading-[27px] text-pretty">
           «{bank.quote}»
         </p>
-        {bank.change && (
-          <div className="flex flex-wrap items-center gap-3 self-start rounded-xl bg-surface-cell px-3.5 py-2.5 text-sm">
-            <span className="text-ink-2">{bank.change.label}:</span>
-            <span className="text-ink-3 line-through">
-              {bank.change.previous}
-            </span>
-            <span>→</span>
-            <span className="font-bold">{bank.change.current}</span>
-          </div>
-        )}
         {bank.document && (
           <div className="flex items-center gap-2 border-t border-line-soft pt-3 text-[13px] text-ink-3">
             <FileText className="h-4 w-4 shrink-0" />
@@ -138,32 +106,6 @@ export const BankPosition = ({ bank }: { bank: IBankPosition | null }) => {
     </div>
   )
 }
-
-export const Affected = ({ detail }: { detail: IInsightDetail }) => (
-  <SectionCard title="Что затронуто">
-    <div className="flex flex-col gap-2.5">
-      {detail.affected.map((item) => (
-        <div
-          key={item.name}
-          className="grid grid-cols-[minmax(0,1fr)_120px] items-center gap-3"
-        >
-          <span className="flex min-w-0 flex-col gap-px">
-            <span className="text-[15px] font-semibold">{item.name}</span>
-            <span className="truncate text-[13px] text-ink-3">
-              {item.description}
-            </span>
-          </span>
-          <span className="flex items-center justify-end gap-2">
-            <ImpactBars level={item.level} />
-            <span className="w-[62px] text-[13px] text-ink-2">
-              {LEVEL_LABEL[item.level]}
-            </span>
-          </span>
-        </div>
-      ))}
-    </div>
-  </SectionCard>
-)
 
 const PointList = ({
   title,
@@ -214,95 +156,17 @@ export const RisksOpportunities = ({ detail }: { detail: IInsightDetail }) => (
   </SectionCard>
 )
 
+/** Рекомендации анализа — как их вернул API. */
 export const Actions = ({ detail }: { detail: IInsightDetail }) => (
   <SectionCard title="Что можно сделать" layer="ai">
     <div className="flex flex-col gap-2">
-      {detail.actions.map((action) =>
-        action.offer ? (
-          <div
-            key={action.title}
-            className="flex flex-col gap-1.5 rounded-[14px] px-3.5 py-3 shadow-[inset_0_0_0_1px_#E6E7EA]"
-          >
-            <div>
-              <Tag tone="offer" className="px-[7px] py-[3px]">
-                Предложение банка
-              </Tag>
-            </div>
-            <span className="text-[15px] font-semibold text-pretty">
-              {action.title}
-            </span>
-            {action.description && (
-              <span className="text-[13px] text-ink-2">
-                {action.description}
-              </span>
-            )}
-            <span className="text-xs leading-4 text-ink-3">
-              Предложение носит информационный характер и не является
-              обязательным. Не является индивидуальной инвестиционной
-              рекомендацией.
-            </span>
-          </div>
-        ) : (
-          <div
-            key={action.title}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[14px] bg-surface-page py-3 pl-3.5 pr-3"
-          >
-            <span className="flex min-w-0 flex-col gap-px">
-              <span className="text-[15px] font-semibold text-pretty">
-                {action.title}
-              </span>
-              {action.description && (
-                <span className="text-[13px] text-ink-3">
-                  {action.description}
-                </span>
-              )}
-            </span>
-            {action.cta && (
-              <span className="cursor-pointer whitespace-nowrap rounded-[10px] bg-white px-3 py-[7px] text-[13px] font-semibold">
-                {action.cta}
-              </span>
-            )}
-          </div>
-        )
-      )}
-    </div>
-  </SectionCard>
-)
-
-const LIKELIHOOD_STYLE: Record<ScenarioLikelihood, string> = {
-  Вероятно: 'bg-ink text-white',
-  Возможно: 'bg-surface-chip text-ink',
-  Маловероятно: 'bg-white text-ink-2 shadow-[inset_0_0_0_1px_#DADBDF]',
-}
-
-/** Сценарии без выдуманных вероятностей: метка + сила данных и основание. */
-export const Scenarios = ({ detail }: { detail: IInsightDetail }) => (
-  <SectionCard title="Сценарии" layer="hyp">
-    <div className="flex flex-col gap-2.5">
-      {detail.scenarios.map((scenario) => (
-        <div
-          key={scenario.text}
-          className="grid grid-cols-[112px_minmax(0,1fr)] items-center gap-3 border-t border-line-soft pt-2.5"
+      {detail.actions.map((action) => (
+        <span
+          key={action}
+          className="rounded-[14px] bg-surface-page px-3.5 py-3 text-[15px] font-semibold text-pretty"
         >
-          <span
-            className={cn(
-              'rounded-lg py-[5px] text-center text-[13px] font-semibold',
-              LIKELIHOOD_STYLE[scenario.likelihood]
-            )}
-          >
-            {scenario.likelihood}
-          </span>
-          <span className="flex min-w-0 flex-col gap-[3px]">
-            <span className="text-[15px] leading-[21px] text-pretty">
-              {scenario.text}
-            </span>
-            <span className="text-[13px] leading-[18px] text-ink-3">
-              Сила данных:{' '}
-              <b className="font-semibold text-ink">{scenario.strength}</b> —{' '}
-              {scenario.basis}
-            </span>
-          </span>
-        </div>
+          {action}
+        </span>
       ))}
     </div>
   </SectionCard>

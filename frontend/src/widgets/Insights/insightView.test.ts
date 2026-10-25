@@ -1,31 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import { PULSE_INSIGHTS } from '@/shared/mocks/pulse'
+import type { IPulseInsight } from '@/store/models/IPulse'
 
-import { fitChips, kindTagText, relevanceText } from './insightView'
+import { relevanceText } from './insightView'
 
-describe('insightView', () => {
-  it('тег — тип и уровень влияния', () => {
-    expect(kindTagText(PULSE_INSIGHTS.rate)).toBe('Риск · Высокое')
-    expect(kindTagText(PULSE_INSIGHTS.ofz)).toBe('Возможность · Низкое')
-  })
+const insight = (patch: Partial<IPulseInsight> = {}): IPulseInsight => ({
+  id: '1',
+  kind: 'risk',
+  title: 'Инсайт',
+  updated: 'Анализ от 2 января 2026',
+  ageHours: 1,
+  ...patch,
+})
 
-  it('у гипотезы вместо релевантности — сила данных', () => {
-    expect(relevanceText(PULSE_INSIGHTS.rate)).toBe('94%')
-    expect(relevanceText(PULSE_INSIGHTS.rate, true)).toBe(
-      'Релевантность для вас: 94%'
+describe('relevanceText', () => {
+  it('уровень из API — словами', () => {
+    expect(relevanceText(insight({ relevanceLevel: 'high' }))).toBe(
+      'Высокая релевантность'
     )
-    expect(relevanceText(PULSE_INSIGHTS.eu)).toBe('Сила данных: средняя')
   })
 
-  it('чипы: первый всегда виден, длинный второй уходит в «+1»', () => {
-    expect(fitChips(['Кредит в Альфа-Банке', 'Лизинг'])).toEqual({
-      visible: ['Кредит в Альфа-Банке'],
-      more: 1,
-    })
-  })
-
-  it('чипы: не больше двух даже если коротких больше', () => {
-    expect(fitChips(['А', 'Б', 'В'])).toEqual({ visible: ['А', 'Б'], more: 1 })
+  it('без уровня — пусто, ничего не рисуем', () => {
+    expect(relevanceText(insight())).toBe('')
   })
 })

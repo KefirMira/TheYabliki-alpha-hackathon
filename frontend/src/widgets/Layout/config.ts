@@ -8,10 +8,8 @@ import {
   Globe,
   House,
   IdCard,
-  Layers,
   type LucideIcon,
   Percent,
-  SlidersHorizontal,
   Users,
 } from 'lucide-react'
 
@@ -52,7 +50,7 @@ export const PULSE_TABS: readonly PulseTab[] = [
     key: 'summary',
     label: 'Сводка',
     path: '/pulse/summary',
-    match: ['/pulse/summary', '/pulse/sources'],
+    match: ['/pulse/summary'],
   },
   {
     key: 'insights',
@@ -75,18 +73,6 @@ export const COMPANY_MENU: readonly SidebarItem[] = [
     label: 'Профиль компании',
     icon: Building2,
     path: '/pulse/company/profile',
-  },
-  {
-    key: 'context',
-    label: 'Контекст',
-    icon: Layers,
-    path: '/pulse/company/context',
-  },
-  {
-    key: 'settings',
-    label: 'Настройки Пульса',
-    icon: SlidersHorizontal,
-    path: '/pulse/company/settings',
   },
   {
     key: 'account',

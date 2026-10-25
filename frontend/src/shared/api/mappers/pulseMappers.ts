@@ -48,7 +48,6 @@ export const mapFeedItem = (
   relevanceLevel:
     item.relevance && item.relevance !== 'unknown' ? item.relevance : undefined,
   title: item.summary?.trim() || 'Инсайт без описания',
-  chips: [],
   updated: `Анализ от ${formatDay(item.created_at)}`,
   ageHours: Math.max(0, (now - Date.parse(item.created_at)) / HOUR_MS),
 })
@@ -141,16 +140,10 @@ export const mapInsightCard = (
     detail: {
       fact: card.news.text?.trim() || card.news.title,
       impact: card.summary?.trim() ?? '',
-      figures: [],
       bank: bankPositionFrom(card),
-      affected: [],
       risks: card.risks,
       opportunities: card.opportunities,
-      actions: card.recommendations.map((text) => ({
-        title: text,
-        description: '',
-      })),
-      scenarios: [],
+      actions: card.recommendations,
       sources: card.sources.map((source) => ({
         name: source.document ?? 'Источник',
         description: [source.page && `стр. ${source.page}`, source.date]
@@ -166,7 +159,6 @@ export const mapInsightCard = (
       warnings,
       logTime: formatDayTime(card.created_at),
       log: analysisLog(card),
-      questions: [],
     },
   }
 }

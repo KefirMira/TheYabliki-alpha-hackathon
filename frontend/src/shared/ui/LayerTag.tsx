@@ -1,4 +1,4 @@
-import { CircleCheck, CircleHelp } from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -6,7 +6,7 @@ import AlfaLogo from './AlfaLogo'
 import Tag from './Tag'
 
 /** Слой информации в инсайте — организаторы требуют их явно разделять. */
-export type InfoLayer = 'fact' | 'bank' | 'ai' | 'hyp'
+export type InfoLayer = 'fact' | 'bank' | 'ai'
 
 /** Звезда вывода ИИ — тот же знак, что у ассистента Альфа-Бизнеса. */
 export const AiStar = ({ className }: { className?: string }) => (
@@ -20,7 +20,7 @@ export const AiStar = ({ className }: { className?: string }) => (
 
 const ICON = 'h-3 w-3'
 
-/** Тег слоя: ФАКТ · ПОЗИЦИЯ АЛЬФА-БАНКА · ВЫВОД ИИ · ГИПОТЕЗА. */
+/** Тег слоя: ФАКТ · ПОЗИЦИЯ АЛЬФА-БАНКА · ВЫВОД ИИ. */
 const LayerTag = ({
   layer,
   muted = false,
@@ -56,12 +56,6 @@ const LayerTag = ({
       return (
         <Tag tone="ai" icon={<AiStar />}>
           Вывод ИИ
-        </Tag>
-      )
-    case 'hyp':
-      return (
-        <Tag tone="hyp" icon={<CircleHelp className={ICON} />}>
-          Гипотеза
         </Tag>
       )
   }

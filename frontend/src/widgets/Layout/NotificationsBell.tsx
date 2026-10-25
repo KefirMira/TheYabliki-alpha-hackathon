@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { BELL_PAYMENT } from '@/shared/mocks/pulse'
+import { BELL_PAYMENT } from '@/shared/mocks/bank'
 import DemoStub from '@/shared/ui/DemoStub'
 import PulseLogo from '@/shared/ui/PulseLogo'
 import { useAppSelector } from '@/store/hooks/redux'

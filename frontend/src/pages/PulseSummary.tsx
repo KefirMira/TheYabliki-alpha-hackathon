@@ -1,10 +1,6 @@
-import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
-import { FEATURES } from '@/shared/constants/features'
-import { DAY_SUMMARY } from '@/shared/mocks/pulse'
-import Card from '@/shared/ui/Card'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
 import { selectPulseInsights } from '@/store/selectors/pulse'
 import { getInsightsFeed } from '@/store/service/Insights/getInsightsFeed'
@@ -16,7 +12,6 @@ import {
 } from '@/widgets/Insights/FeedStates'
 import InsightCard from '@/widgets/Insights/InsightCard'
 import { filterFeed, filtersFromParams } from '@/widgets/Insights/feedFilter'
-import FactorPulse from '@/widgets/Summary/FactorPulse'
 
 const MAIN_COUNT = 6
 
@@ -79,36 +74,10 @@ const PulseSummary = () => {
   }
 
   return (
-    <>
-      {FEATURES.daySummary && (
-        <Card>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[17px] font-semibold">Сводка дня</span>
-            <span className="text-[13px] text-ink-3">{DAY_SUMMARY.meta}</span>
-          </div>
-          <p className="max-w-[1120px] text-base leading-6 text-pretty">
-            {DAY_SUMMARY.text}
-          </p>
-        </Card>
-      )}
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-[17px] font-semibold leading-6">Главное сегодня</h2>
-        {renderMain()}
-      </section>
-
-      {FEATURES.factorPulse && <FactorPulse />}
-
-      {FEATURES.sources && (
-        <Link
-          to="/pulse/sources"
-          className="-ml-3.5 inline-flex items-center gap-2 self-start rounded-xl px-3.5 py-3 text-[15px] font-medium transition-colors hover:bg-surface-chip"
-        >
-          Смотреть источники
-          <ArrowRight className="h-[18px] w-[18px]" />
-        </Link>
-      )}
-    </>
+    <section className="flex flex-col gap-3">
+      <h2 className="text-[17px] font-semibold leading-6">Главное сегодня</h2>
+      {renderMain()}
+    </section>
   )
 }
 

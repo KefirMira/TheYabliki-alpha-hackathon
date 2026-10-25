@@ -1,19 +1,11 @@
 import { useState } from 'react'
-import {
-  ArrowRight,
-  ArrowUpDown,
-  Bookmark,
-  Loader2,
-  Plus,
-  RotateCw,
-} from 'lucide-react'
+import { ArrowUpDown, Bookmark, Loader2, Plus, RotateCw } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { useFavorites } from '@/hooks/useFavorites'
 import { cn } from '@/lib/utils'
-import { FEATURES } from '@/shared/constants/features'
 import Segmented from '@/shared/ui/Segmented'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
 import type { PulseKind } from '@/store/models/IPulse'
@@ -37,14 +29,13 @@ const TYPE_LABELS: Record<FeedType, string> = {
   all: 'Все',
   risk: 'Риски',
   opp: 'Возможности',
-  hyp: 'Гипотезы',
   mixed: 'Риск и возможность',
   info: 'Информация',
 }
 
 /** Вкладки макета всегда; остальные типы — только если они пришли из API. */
 const ALWAYS_SHOWN: FeedType[] = ['all', 'risk', 'opp']
-const OPTIONAL: PulseKind[] = ['hyp', 'mixed', 'info']
+const OPTIONAL: PulseKind[] = ['mixed', 'info']
 
 /** Лента инсайтов компании из API. */
 const Insights = () => {
@@ -264,16 +255,6 @@ const Insights = () => {
             {errorMore ? 'Повторить' : 'Показать ещё'}
           </Button>
         </div>
-      )}
-
-      {FEATURES.history && (
-        <Link
-          to="/pulse/insights/history"
-          className="inline-flex items-center gap-2 self-start rounded-xl px-3.5 py-3 text-[15px] font-medium transition-colors hover:bg-surface-chip"
-        >
-          История инсайтов
-          <ArrowRight className="h-[18px] w-[18px]" />
-        </Link>
       )}
     </>
   )
