@@ -21,7 +21,7 @@ class EvidenceRepository:
 
     async def create(self, insight_id: int, fragment) -> int:
         result = await self.session.execute(insert(insight_evidence).values(
-            company_news_analysis_id=insight_id, evidence_type="PDF",
+            company_news_analysis_id=insight_id, evidence_type="DOCUMENT",
             evidence_text=fragment.text, document_name=fragment.document,
             document_page=fragment.page, chunk_id=fragment.chunk_id,
             document_date=complete_date(fragment.date),

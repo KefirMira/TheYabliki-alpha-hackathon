@@ -23,3 +23,5 @@
 !company_import/*.py
 !fixtures/
 !fixtures/gateway_macro_v1.json
+!integration_demo.py
+!fixtures/integration_demo.sql

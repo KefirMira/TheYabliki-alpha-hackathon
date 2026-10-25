@@ -1,6 +1,7 @@
 from sqlalchemy import insert
 
 from repositories.analysis_tables import company_news_analyses
+from services.source_provenance import source_metadata
 
 
 class CompanyAnalysisRepository:
@@ -21,6 +22,7 @@ class CompanyAnalysisRepository:
             risks=analysis.risks, opportunities=analysis.opportunities,
             recommendations=analysis.recommendations,
             validation=validation,
-            source_snapshot=[item.model_dump(mode="json", exclude={"text"}) for item in bundle.evidence],
+            source_snapshot=[{**item.model_dump(mode="json", exclude={"text"}),
+                              'provenance': source_metadata(item.document)} for item in bundle.evidence],
         ).returning(company_news_analyses.c.id))
         return result.scalar_one()

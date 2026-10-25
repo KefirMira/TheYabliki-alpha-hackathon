@@ -4,6 +4,7 @@ from repositories.insight_repository import InsightRepository
 from schemas.insights import InsightCard, InsightFeed, InsightFeedItem, InsightNews
 from services.company_profile_service import CompanyNotFound
 from services.insight_cursor import InvalidInsightCursor, encode_cursor
+from services.source_provenance import card_provenance
 
 
 class InsightNotFound(Exception):
@@ -45,11 +46,12 @@ class InsightService:
                 raise denied()
             raise InsightNotFound(insight_id)
         evidence = await self.insights.get_evidence(record.id, insight_id)
+        sources, evidence = card_provenance(row['source_snapshot'], evidence)
         return InsightCard(
             company_id=source_id, **{key: row[key] for key in (
                 "insight_id", "run_id", "type", "relevance", "summary", "created_at", "status",
                 "risks", "opportunities", "recommendations", "validation",
             )},
             news=InsightNews(id=row["news_id"], title=row["news_title"], text=row["news_text"]),
-            sources=row["source_snapshot"], evidence=evidence,
+            sources=sources, evidence=evidence,
         )

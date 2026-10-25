@@ -1,0 +1,65 @@
+name: pulse-integration-demo
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: test_integration_demo
+      POSTGRES_USER: pulse_demo
+      POSTGRES_PASSWORD: ${INTEGRATION_DEMO_DB_PASSWORD:?Set a new local hexadecimal password}
+    volumes:
+      - integration_pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./database/migrations/002_pulse_features.sql:/docker-entrypoint-initdb.d/002.sql:ro
+      - ./database/migrations/003_integrity.sql:/docker-entrypoint-initdb.d/003.sql:ro
+      - ./database/migrations/004_news_external_identity.sql:/docker-entrypoint-initdb.d/004.sql:ro
+      - ./database/migrations/005_saved_news_analysis_jobs.sql:/docker-entrypoint-initdb.d/005.sql:ro
+      - ./database/migrations/006_news_company_matching.sql:/docker-entrypoint-initdb.d/006.sql:ro
+      - ./database/migrations/007_auth_access.sql:/docker-entrypoint-initdb.d/007.sql:ro
+      - ./database/integration-demo-marker.sql:/docker-entrypoint-initdb.d/900_marker.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U pulse_demo -d test_integration_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  backend:
+    image: pulse-integration-demo:local
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pulse_demo:${INTEGRATION_DEMO_DB_PASSWORD:?Set a local password}@postgres:5432/test_integration_demo
+      AI_MODE: demo
+      LLM_API_KEY: ""
+      LLM_BASE_URL: ""
+      LLM_MODEL: ""
+      CORS_ORIGINS: http://localhost:5173
+      RAG_KNOWLEDGE_BASE_DIR: /tmp/empty-synthetic-rag
+    ports:
+      - "127.0.0.1:${INTEGRATION_DEMO_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=8)"]
+      interval: 3s
+      timeout: 10s
+      retries: 15
+      start_period: 10s
+  seed:
+    image: pulse-integration-demo:local
+    profiles: [seed]
+    # Seed shares only this project's PostgreSQL network namespace. The strict
+    # loopback target guard remains enabled; no host PostgreSQL is reachable here.
+    network_mode: service:postgres
+    environment:
+      INTEGRATION_DEMO_DATABASE_URL: postgresql+asyncpg://pulse_demo:${INTEGRATION_DEMO_DB_PASSWORD:?Set a local password}@127.0.0.1:5432/test_integration_demo
+      LLM_API_KEY: ""
+      LLM_BASE_URL: ""
+      LLM_MODEL: ""
+    command: [python, -B, -m, integration_demo, --expected-database, test_integration_demo]
+    stdin_open: true
+    tty: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  integration_pgdata:
