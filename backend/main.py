@@ -22,6 +22,7 @@ from settings import execution_mode
 from schemas.http_docs import HealthResponse, RAGResponse, LegacyError, APIError, ValidationResponse
 from api.auth import router as auth_router, legacy_denied, AUTH_ERRORS
 from api.capabilities import router as capabilities_router
+from api.dataset_analyses import router as dataset_analyses_router
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -33,7 +34,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 execution_mode()  # Invalid modes must never silently enable paid analysis.
 
-app = FastAPI(title="Alfa Hack API", version="1.22.1", lifespan=database_lifespan)
+app = FastAPI(title="Alfa Hack API", version="1.27.0", lifespan=database_lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()],
@@ -47,6 +48,7 @@ app.include_router(readiness_router)
 app.include_router(news_router)
 app.include_router(auth_router)
 app.include_router(capabilities_router)
+app.include_router(dataset_analyses_router)
 
 
 @app.exception_handler(RequestValidationError)

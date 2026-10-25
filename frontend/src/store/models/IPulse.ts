@@ -58,6 +58,7 @@ export interface IInsightEvidence {
 export interface IInsightDetail {
   fact: string
   synthetic?: boolean
+  datasetMode?: 'fake' | 'organizer'
   savedPilot?: {
     model: string
     pilotDate: string

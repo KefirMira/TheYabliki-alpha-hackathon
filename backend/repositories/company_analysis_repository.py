@@ -23,6 +23,6 @@ class CompanyAnalysisRepository:
             recommendations=analysis.recommendations,
             validation=validation,
             source_snapshot=[{**item.model_dump(mode="json", exclude={"text"}),
-                              'provenance': source_metadata(item.document)} for item in bundle.evidence],
+                              'provenance': item.provenance.model_dump(mode='json') if item.provenance is not None else source_metadata(item.document)} for item in bundle.evidence],
         ).returning(company_news_analyses.c.id))
         return result.scalar_one()

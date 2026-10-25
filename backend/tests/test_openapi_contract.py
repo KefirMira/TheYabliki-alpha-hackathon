@@ -7,8 +7,20 @@ def test_all_operations_are_documented():
     spec = app.openapi()
     operations = [(path, method, value) for path, methods in spec["paths"].items()
                   for method, value in methods.items() if method in {"get", "post"}]
-    assert len(operations) == 15
-    assert spec["info"]["version"] == "1.22.1"
+    assert {(path,method) for path,method,_ in operations} == {
+        ("/health","get"),("/ready","get"),("/api/news","post"),
+        ("/api/auth/login","post"),("/api/auth/logout","post"),("/api/me","get"),
+        ("/api/companies/{source_id}","get"),
+        ("/api/companies/{source_id}/insights","get"),
+        ("/api/companies/{source_id}/insights/{insight_id}","get"),
+        ("/api/companies/{source_id}/capabilities","get"),
+        ("/api/companies/{source_id}/analyses","post"),
+        ("/api/companies/{source_id}/news/{news_id}/analyses","post"),
+        ("/api/companies/{source_id}/news/{news_id}/dataset-analyses","post"),
+        ("/api/companies/{source_id}/dataset-news","get"),
+        ("/api/analyze","post"),("/api/analyze-company","post"),("/api/analyze-rag","post"),
+    }
+    assert spec["info"]["version"] == "1.27.0"
     for path, method, operation in operations:
         assert operation["description"], (method, path)
         for status, response in operation["responses"].items():

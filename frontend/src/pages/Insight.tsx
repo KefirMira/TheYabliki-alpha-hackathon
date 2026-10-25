@@ -148,6 +148,19 @@ const Insight = () => {
 
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-4">
+          {data.detail.datasetMode && (
+            <Card className="mb-4 border p-4">
+              <strong>
+                {data.detail.datasetMode === 'fake'
+                  ? 'Локальная заглушка — LLM не вызывалась'
+                  : 'Анализ обезличенного датасета через API организаторов'}
+              </strong>
+              <p>
+                Финансовая достоверность не подтверждена. Наличие источников и
+                корректный JSON не доказывают правильность выводов.
+              </p>
+            </Card>
+          )}
           <SavedPilotNotice detail={detail} />
           <Card className="gap-3.5 p-5 md:p-7">
             <div className="flex items-center justify-between gap-2">

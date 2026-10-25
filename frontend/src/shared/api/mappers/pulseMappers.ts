@@ -261,6 +261,11 @@ export const mapInsightCard = (
       confidence,
       financialReview: financialReviewOf(card),
       savedPilot: savedPilotOf(card),
+      datasetMode: card.validation.warnings?.includes('DATASET_FAKE_TRANSPORT')
+        ? 'fake'
+        : card.validation.warnings?.includes('HACKATHON_DATASET_ANALYSIS')
+          ? 'organizer'
+          : undefined,
       warnings,
       logTime: formatDayTime(card.created_at),
       log: analysisLog(card),

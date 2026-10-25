@@ -96,3 +96,9 @@ class GatewayOrchestrationTrace(OrchestrationTrace):
         if self.usage and any(isinstance(v,bool) or v<0 for v in self.usage.values()):
             raise ValueError('INVALID_USAGE')
         return self
+
+
+
+class DatasetOrchestrationTrace(GatewayOrchestrationTrace):
+    """Dataset permission is distinct from the frozen synthetic fixture contract."""
+    version: Literal['hackathon-dataset-v1'] = 'hackathon-dataset-v1'

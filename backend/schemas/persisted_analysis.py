@@ -4,10 +4,18 @@ from pydantic import BaseModel, Field, model_validator
 
 from schemas.analysis import CompanyAnalysisResponse
 from schemas.financial_review import FinancialReview
-from schemas.orchestration import OrchestrationTrace, GatewayOrchestrationTrace
+from schemas.orchestration import OrchestrationTrace, GatewayOrchestrationTrace, DatasetOrchestrationTrace
+
+
+class EvidenceProvenance(BaseModel):
+    declared_format: str = Field(pattern="^(PDF|TXT)$")
+    format_verified: bool
+    publisher: str | None = Field(default=None, pattern="^ALFA_BANK$")
+    attribution_status: str = Field(pattern="^(VERIFIED|SYNTHETIC)$")
 
 
 class RetrievedEvidence(BaseModel):
+    provenance: EvidenceProvenance | None = Field(default=None, exclude=True)
     id: int = Field(gt=0)
     document: str = Field(min_length=1)
     page: int = Field(gt=0)
@@ -23,7 +31,7 @@ class PersistableAnalysis(BaseModel):
     model_name: str | None = None
     prompt_version: str = "company-json-v1"
     financial_review: FinancialReview | None = None
-    orchestration: GatewayOrchestrationTrace | OrchestrationTrace | None = None
+    orchestration: DatasetOrchestrationTrace | GatewayOrchestrationTrace | OrchestrationTrace | None = None
 
     @model_validator(mode="after")
     def check_sources(self):

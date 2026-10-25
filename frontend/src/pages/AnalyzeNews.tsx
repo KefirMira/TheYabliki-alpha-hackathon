@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useCompanyCapabilities } from '@/hooks/useCompanyCapabilities'
 import { useReadiness } from '@/hooks/useReadiness'
 import {
+  fetchDatasetCandidates,
   NEWS_DIAGNOSTIC_LABEL,
   type NewsFormValues,
   newsFormError,
@@ -78,8 +79,19 @@ const AnalyzeNews = () => {
     companyId ? state.analysis.byCompany[companyId] : undefined
   )
   const { ai } = useReadiness()
-  const aiOff = ai === 'demo'
   const capability = useCompanyCapabilities(companyId)
+  const aiOff = ai === 'demo' && !capability.dataset
+  const [transferFor, setTransferFor] = useState<string | null>(null)
+  const transferConfirmed = transferFor === companyId
+  const [candidates, setCandidates] = useState<{
+    company: string
+    items: { id: number; title: string; content: string }[]
+  } | null>(null)
+  const [candidateError, setCandidateError] = useState('')
+  const [selected, setSelected] = useState<{
+    company: string
+    id: number
+  } | null>(null)
   const analysisBlocked = aiOff || capability.blocked
   const [form, setForm] = useState<NewsFormValues>(EMPTY_FORM)
   const [tried, setTried] = useState(false)
@@ -93,7 +105,7 @@ const AnalyzeNews = () => {
   const news: NewsFormValues = {
     ...form,
     publishedAt: publishedAt ?? '',
-    synthetic: aiOff,
+    synthetic: ai === 'demo',
   }
   const formError = () =>
     newsFormError(news) ??
@@ -104,14 +116,23 @@ const AnalyzeNews = () => {
   const set = <K extends keyof NewsFormValues>(
     key: K,
     value: NewsFormValues[K]
-  ) => setForm((current) => ({ ...current, [key]: value }))
+  ) => {
+    setSelected(null)
+    setForm((current) => ({ ...current, [key]: value }))
+  }
 
   const running = run?.status === 'running'
   const error = tried ? formError() : null
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (running || !companyId || analysisBlocked) return
+    if (
+      running ||
+      !companyId ||
+      analysisBlocked ||
+      (capability.dataset && !transferConfirmed)
+    )
+      return
     if (formError()) {
       setTried(true)
       return
@@ -121,16 +142,44 @@ const AnalyzeNews = () => {
     const title = form.title.trim()
     // Та же новость уже сохранена (например, упал анализ) — второй раз в
     // базу не отправляем, разбираем сохранённую.
-    if (run?.newsId && run.newsKey === newsKey) {
-      dispatch(runAnalysis({ companyId, title, newsId: run.newsId, newsKey }))
+    if (selected?.company === companyId) {
+      dispatch(
+        runAnalysis({
+          companyId,
+          title,
+          newsId: selected.id,
+          newsKey,
+          dataset: capability.dataset,
+        })
+      )
+    } else if (run?.newsId && run.newsKey === newsKey) {
+      dispatch(
+        runAnalysis({
+          companyId,
+          title,
+          newsId: run.newsId,
+          newsKey,
+          dataset: capability.dataset,
+        })
+      )
     } else {
-      dispatch(runAnalysis({ companyId, title, form: news, newsKey }))
+      dispatch(
+        runAnalysis({
+          companyId,
+          title,
+          form: news,
+          newsKey,
+          dataset: capability.dataset,
+        })
+      )
     }
   }
 
   const handleClear = () => {
     if (running) return
     setForm(EMPTY_FORM)
+    setSelected(null)
+    setTransferFor(null)
     setDate('')
     setTime('')
     setTried(false)
@@ -144,6 +193,77 @@ const AnalyzeNews = () => {
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <Card className="gap-5 p-5 md:p-7">
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {capability.dataset && (
+              <div className="rounded-xl border p-4 text-sm">
+                <strong>
+                  {capability.datasetTransport === 'fake'
+                    ? 'Локальная проверка без LLM'
+                    : 'LLM API организаторов'}
+                </strong>
+                <p>
+                  Только обезличенный датасет и разрешённые источники.
+                  Финансовая достоверность не подтверждена. Банковский продукт
+                  не доказывает долг. Повторов после ошибки нет.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={async () => {
+                    if (!companyId) return
+                    const company = companyId
+                    try {
+                      const result = await fetchDatasetCandidates(company)
+                      setCandidates({ company, items: result.items })
+                      setCandidateError('')
+                    } catch {
+                      setCandidateError('Не удалось подобрать новости')
+                    }
+                  }}
+                >
+                  Подобрать сохранённые новости
+                </Button>
+                {candidateError && <p>{candidateError}</p>}
+                {candidates?.company === companyId && (
+                  <div>
+                    <p>
+                      Тематические кандидаты, не подтверждённая релевантность.
+                    </p>
+                    {candidates.items.length === 0 && (
+                      <p>Подходящих сохранённых новостей нет.</p>
+                    )}
+                    {candidates.items.map((item) => (
+                      <button
+                        type="button"
+                        className="block underline"
+                        key={item.id}
+                        onClick={() => {
+                          setForm({
+                            ...EMPTY_FORM,
+                            title: item.title,
+                            content: item.content,
+                          })
+                          setSelected({ company: companyId, id: item.id })
+                          setTransferFor(null)
+                        }}
+                      >
+                        {item.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <label className="flex gap-2">
+                  <input
+                    type="checkbox"
+                    checked={transferConfirmed}
+                    onChange={(event) =>
+                      setTransferFor(event.target.checked ? companyId : null)
+                    }
+                  />
+                  Подтверждаю право передачи текста новости: в нём нет секретов
+                  или персональных данных.
+                </label>
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               <h1 className="text-[26px] font-bold leading-[1.2]">
                 Проанализировать новость

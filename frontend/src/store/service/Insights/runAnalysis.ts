@@ -21,7 +21,11 @@ import { refreshInsightsFeed } from './refreshInsightsFeed'
  * сохранённую — повтор после ошибки и анализ той же новости для другой
  * компании логина.
  */
-export type RunAnalysisArgs = { companyId: string; title: string } & (
+export type RunAnalysisArgs = {
+  companyId: string
+  title: string
+  dataset?: boolean
+} & (
   | { form: NewsFormValues; newsKey: string }
   | { newsId: number; newsKey: string }
 )
@@ -82,7 +86,9 @@ export const runAnalysis = createAsyncThunk<
         diagnostics = saved.diagnostics
         dispatch(analysisNewsSaved({ companyId, newsId }))
       }
-      const result = await analyzeSavedNews(companyId, newsId!)
+      const result = args.dataset
+        ? await analyzeSavedNews(companyId, newsId!, true)
+        : await analyzeSavedNews(companyId, newsId!)
       // Новый инсайт — в ленту с пометкой «Новое». Ленту другой компании
       // не трогаем: её загрузят при переключении.
       if (getState().company.currentCompanyId === companyId) {

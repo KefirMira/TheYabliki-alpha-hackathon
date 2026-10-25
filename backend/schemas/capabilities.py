@@ -49,5 +49,7 @@ class CompanyCapabilities(BaseModel):
     model_config = ConfigDict(extra="forbid")
     company_id: str = Field(description="Запрошенный companies.source_id, только после проверки membership.")
     mode: Literal["demo", "full"]
+    dataset_analysis: OperationCapability | None = None
+    dataset_transport: Literal["fake","organizer"] | None = None
     operations: CompanyOperations
     external_provider: ProviderCapability = Field(default_factory=ProviderCapability)

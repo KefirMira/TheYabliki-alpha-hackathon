@@ -80,6 +80,9 @@ class SyntheticDraftAdapter:
     async def aclose(self):
         await self._client.close()
 
+    def verify_dto(self, dto):
+        return verify_input(dto)
+
     async def complete(self, dto):
         if self.transport=='organizer':
             from settings import ai_disabled_reason
@@ -88,7 +91,7 @@ class SyntheticDraftAdapter:
             if ai_disabled_reason():
                 raise DraftStopped('AI_DISABLED_IN_DEMO')
         try:
-            self.outbound_sha256=verify_input(dto)
+            self.outbound_sha256=self.verify_dto(dto)
         except (ValueError,TypeError,AttributeError):
             raise DraftStopped('SYNTHETIC_INPUT_PROVENANCE_FAILED') from None
         # UTF-8 bytes are a conservative planning allowance, not a verified model tokenizer.
@@ -105,7 +108,7 @@ class SyntheticDraftAdapter:
         try:
             async with asyncio.timeout(self.limits.request_seconds):
                 # Recheck trusted bytes at the last boundary; never forward an original caller object.
-                verify_input(dto)
+                self.verify_dto(dto)
                 response=await self._client.with_options(max_retries=0,timeout=self.limits.request_seconds).chat.completions.create(
                     model=MODEL,messages=messages,max_tokens=self.limits.max_output_tokens)
             choices=field(response,'choices')

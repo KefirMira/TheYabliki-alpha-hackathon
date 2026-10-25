@@ -53,4 +53,10 @@ class CompanyCapabilitiesService:
         if not await self.auth.company_allowed(user_id, source_id):
             raise denied()
         can_analyze = await self.auth.company_allowed(user_id, source_id, True)
-        return describe_capabilities(source_id, can_analyze=can_analyze)
+        result = describe_capabilities(source_id, can_analyze=can_analyze)
+        from api.dataset_analyses import dataset_enabled, dataset_mode
+        if dataset_enabled() and can_analyze:
+            result.dataset_analysis = operation("AVAILABLE", conditions=(
+                "REQUEST_VALIDATION_REQUIRED","NEWS_GRANT_REQUIRED","EXISTING_JOB_AND_RETRY_POLICY_APPLY"))
+            result.dataset_transport = dataset_mode()
+        return result

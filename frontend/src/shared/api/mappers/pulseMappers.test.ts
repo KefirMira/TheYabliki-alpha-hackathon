@@ -220,3 +220,19 @@ it('preserves financial dispositions instead of treating technical success as tr
   expect(detail.synthetic).toBe(true)
   expect(detail.confidence).toContain('финансовая достоверность не установлена')
 })
+
+it('dataset fake and organizer modes remain distinct from financial truth', () => {
+  const fake = mapInsightCard(
+    card({
+      validation: { passed: false, warnings: ['DATASET_FAKE_TRANSPORT'] },
+    })
+  )
+  const real = mapInsightCard(
+    card({
+      validation: { passed: false, warnings: ['HACKATHON_DATASET_ANALYSIS'] },
+    })
+  )
+  expect(fake.detail.datasetMode).toBe('fake')
+  expect(real.detail.datasetMode).toBe('organizer')
+  expect(fake.detail.confidence).not.toContain('достоверность подтверждена')
+})

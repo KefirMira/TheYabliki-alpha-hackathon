@@ -159,6 +159,10 @@ class CompanyAnalysisService:
         except AnalysisConflict:
             raise
         except (Exception, asyncio.CancelledError) as error:
+            # A bounded dataset adapter supplies only fixed diagnostic codes, never provider bodies.
+            from services.dataset_analysis import DatasetRequestFailure
+            if isinstance(error, DatasetRequestFailure):
+                phase = error.code
             try:
                 async with self.sessions() as session:
                     async with session.begin():

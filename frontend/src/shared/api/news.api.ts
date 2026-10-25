@@ -35,10 +35,19 @@ export const ingestNews = (news: IExternalNewsInput) =>
  * возвращает сохранённый результат без ИИ, по идущей — 409. Автоматически
  * не повторяем: новый запуск — новый вызов LLM.
  */
-export const analyzeSavedNews = (companyId: string, newsId: number) =>
+export const analyzeSavedNews = (
+  companyId: string,
+  newsId: number,
+  dataset = false
+) =>
   apiRequest<ICreatedAnalysis>(
-    `/api/companies/${encodeURIComponent(companyId)}/news/${newsId}/analyses`,
-    { method: 'POST' },
+    `/api/companies/${encodeURIComponent(companyId)}/news/${newsId}/${dataset ? 'dataset-analyses' : 'analyses'}`,
+    {
+      method: 'POST',
+      ...(dataset
+        ? { body: JSON.stringify({ news_external_transfer_confirmed: true }) }
+        : {}),
+    },
     'Не удалось проанализировать новость',
     ANALYSIS_TIMEOUT_MS
   )
@@ -136,3 +145,13 @@ export const NEWS_DIAGNOSTIC_LABEL: Record<NewsDiagnostic, string> = {
   TITLE_MISMATCH: 'заголовок отличается от сохранённого',
   METADATA_MISMATCH: 'дата или язык отличаются от сохранённых',
 }
+
+export const fetchDatasetCandidates = (companyId: string) =>
+  apiRequest<{
+    matching: string
+    items: { id: number; title: string; content: string }[]
+  }>(
+    '/api/companies/' + encodeURIComponent(companyId) + '/dataset-news',
+    { method: 'GET' },
+    'Не удалось подобрать сохранённые новости'
+  )

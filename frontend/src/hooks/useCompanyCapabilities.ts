@@ -4,6 +4,8 @@ import { useAppSelector } from '@/store/hooks/redux'
 interface Capabilities {
   company_id: string
   mode: 'demo' | 'full'
+  dataset_analysis?: { state: string }
+  dataset_transport?: 'fake' | 'organizer' | null
   operations: {
     analyze_new: {
       state: 'AVAILABLE' | 'BLOCKED' | 'UNAVAILABLE' | 'UNKNOWN'
@@ -41,9 +43,15 @@ export const useCompanyCapabilities = (company: string | null) => {
     value?.actor === user && value?.data.company_id === company
       ? value.data.operations.analyze_new
       : null
+  const dataset =
+    value?.actor === user &&
+    value?.data.company_id === company &&
+    value.data.dataset_analysis?.state === 'AVAILABLE'
   return {
-    blocked: operation?.state !== 'AVAILABLE',
-    state: operation?.state ?? 'UNKNOWN',
+    dataset,
+    datasetTransport: dataset ? value?.data.dataset_transport : null,
+    blocked: !dataset && operation?.state !== 'AVAILABLE',
+    state: dataset ? 'AVAILABLE' : (operation?.state ?? 'UNKNOWN'),
     reasons: operation?.reasons.map((r) => r.code) ?? [],
   }
 }

@@ -161,3 +161,30 @@ it('blocks AI despite llm_config when company capability is BLOCKED', async () =
   ).toBeDisabled()
   expect(ingestNews).not.toHaveBeenCalled()
 })
+
+it('dataset требует подтверждения и выбирает отдельный endpoint', async () => {
+  vi.mocked(ingestNews)
+    .mockReset()
+    .mockResolvedValue(saved as IIngestedNews)
+  vi.mocked(analyzeSavedNews)
+    .mockReset()
+    .mockReturnValue(new Promise(() => {}))
+  vi.mocked(useCompanyCapabilities).mockReturnValue({
+    blocked: false,
+    state: 'AVAILABLE',
+    reasons: [],
+    dataset: true,
+    datasetTransport: 'fake',
+  })
+  await renderPage()
+  expect(screen.getByText('Локальная проверка без LLM')).toBeInTheDocument()
+  await act(async () => {
+    fillAndSubmit()
+  })
+  expect(ingestNews).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('checkbox'))
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Проанализировать' }))
+  })
+  expect(analyzeSavedNews).toHaveBeenCalledWith('DEMO-001', 42, true)
+})
