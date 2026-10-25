@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Дизайн-система: все цвета — HSL, значения сняты с макетов «Пульс бизнеса» v6. */
+
+@layer base {
+  :root {
+    --background: 220 13% 95.5%; /* #F2F3F5 — фон страницы */
+    --foreground: 225 10% 8%; /* #121316 — основной текст */
+
+    --card: 0 0% 100%;
+    --card-foreground: 225 10% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 10% 8%;
+
+    --primary: 4 86% 54%; /* #EF3124 — фирменный красный: одна главная кнопка на экран */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 225 11% 92.5%; /* #EAEBEE — вторичные кнопки */
+    --secondary-foreground: 225 10% 8%;
+
+    --muted: 225 11% 92.5%;
+    --muted-foreground: 224 5% 44%; /* #6B6E76 — вторичный текст */
+
+    --accent: 225 11% 92.5%;
+    --accent-foreground: 225 10% 8%;
+
+    --destructive: 4 76% 40%; /* #B42318 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 225 9% 91%; /* #E6E7EA — разделители */
+    --input: 225 9% 91%;
+    --ring: 4 86% 54%;
+
+    --radius: 1.25rem; /* 20px — карточки (rounded-3xl) */
+
+    --sidebar-background: 220 13% 95.5%;
+    --sidebar-foreground: 225 10% 8%;
+    --sidebar-primary: 4 86% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 225 10% 8%;
+    --sidebar-border: 225 9% 91%;
+    --sidebar-ring: 4 86% 54%;
+
+    --status-success: 146 67% 37%; /* #1F9D55 */
+    --status-warning: 36 100% 24%; /* #7A4A00 */
+    --status-error: 4 76% 40%; /* #B42318 */
+    --status-info: 223 68% 51%; /* #2B5BD7 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@layer utilities {
+  /*
+   * Полоса вкладок или сегментов: на узком экране листается вбок, но без
+   * видимого скроллбара. overflow-x: auto делает auto и overflow-y, и из-за
+   * -mb-px у вкладок Windows рисовал вертикальный скроллбар со стрелками.
+   */
+  .scroll-x-quiet {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .scroll-x-quiet::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Перенос строк без «висячих» коротких слов, как в макетах. */
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Иконка «✦» вывода ИИ: градиент по тексту символа. */
+  .ai-star {
+    background: linear-gradient(135deg, #ff6a88, #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
