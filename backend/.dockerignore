@@ -27,3 +27,10 @@
 !fixtures/integration_demo.sql
 !saved_pilot_demo.py
 !fixtures/saved_llm_pilot_v1.json
+!Dockerfile.submission
+!requirements-runtime.txt
+!submission_demo.py
+!fixtures/submission_profiles.json
+!fixtures/submission_release.json
+!fixtures/submission_rag/
+!fixtures/submission_rag/**

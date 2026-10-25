@@ -1,0 +1,6 @@
+# Optional: choose an unused subnet after inspecting Docker networks and host routes.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${SUBMISSION_SUBNET:?Set a verified unused private subnet}

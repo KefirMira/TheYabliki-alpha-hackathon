@@ -1,0 +1,71 @@
+name: pulse-submission
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: test_submission_demo
+      POSTGRES_USER: pulse_submit
+      POSTGRES_PASSWORD: ${SUBMISSION_DB_PASSWORD:?Set a local hexadecimal database password}
+    volumes:
+      - submission_pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./database/migrations/002_pulse_features.sql:/docker-entrypoint-initdb.d/002.sql:ro
+      - ./database/migrations/003_integrity.sql:/docker-entrypoint-initdb.d/003.sql:ro
+      - ./database/migrations/004_news_external_identity.sql:/docker-entrypoint-initdb.d/004.sql:ro
+      - ./database/migrations/005_saved_news_analysis_jobs.sql:/docker-entrypoint-initdb.d/005.sql:ro
+      - ./database/migrations/006_news_company_matching.sql:/docker-entrypoint-initdb.d/006.sql:ro
+      - ./database/migrations/007_auth_access.sql:/docker-entrypoint-initdb.d/007.sql:ro
+      - ./docker/submission-marker.sql:/docker-entrypoint-initdb.d/900_marker.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U pulse_submit -d test_submission_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  seed:
+    image: pulse-submission-backend:local
+    network_mode: service:postgres
+    environment:
+      SUBMISSION_SEED_DATABASE_URL: postgresql+asyncpg://pulse_submit:${SUBMISSION_DB_PASSWORD:?Set local DB password}@127.0.0.1:5432/test_submission_demo
+      SUBMISSION_DEMO_PASSWORD: ${SUBMISSION_DEMO_PASSWORD:?Set a local demo password of at least 12 characters}
+    command: [python, -B, -m, submission_demo]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+  backend:
+    image: pulse-submission-backend:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.submission
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pulse_submit:${SUBMISSION_DB_PASSWORD:?Set local DB password}@postgres:5432/test_submission_demo
+      AI_MODE: demo
+      DATASET_AI_TRANSPORT: fake
+      DATASET_AI_MANIFEST: /app/fixtures/submission_release.json
+      DATASET_AI_MANIFEST_SHA256: 97e5e6b7b5d209c7d1e8963b8cb4e6368a88782ef10e51d06c7e3879aaddbabe
+      LLM_API_KEY: ""
+      LLM_BASE_URL: ""
+      LLM_MODEL: ""
+      RAG_KNOWLEDGE_BASE_DIR: /app/fixtures/submission_rag
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+    ports:
+      - "127.0.0.1:${SUBMISSION_BACKEND_PORT:-8000}:8000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=8)"]
+      interval: 4s
+      timeout: 10s
+      retries: 20
+  frontend:
+    image: pulse-submission-frontend:local
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${SUBMISSION_FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  submission_pgdata:

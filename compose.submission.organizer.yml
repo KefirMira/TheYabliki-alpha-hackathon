@@ -1,0 +1,12 @@
+# EXPLICIT OPT-IN ONLY after separate permission for one pinned pair.
+# Never use this override for the default jury demo.
+services:
+  backend:
+    environment:
+      AI_MODE: full
+      DATASET_AI_TRANSPORT: organizer
+      LLM_API_KEY: ${LLM_API_KEY:?Organizer key must be supplied locally}
+      LLM_BASE_URL: https://changellenge.up.railway.app/v1
+      LLM_MODEL: deepseek/deepseek-v4.1-flash
+      DATASET_AI_REAL_CONFIRMED: ${DATASET_AI_REAL_CONFIRMED:?Explicit one-call confirmation required}
+      DATASET_AI_REAL_PAIR_SHA256: ${DATASET_AI_REAL_PAIR_SHA256:?Approved pair hash required}
