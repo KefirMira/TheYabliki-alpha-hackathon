@@ -7,7 +7,7 @@ import pytest
 from services import synthetic_news_execution_service as module
 from services.company_analysis_service import CompanyAnalysisService
 from services.insight_service import InsightService
-from test_job_claim_integration import job_database
+from synthetic_actor_fixture import job_database
 from test_news_identity_migration import identity_dsn
 
 pytestmark = pytest.mark.integration
@@ -23,7 +23,7 @@ def executor(sessions, summary):
     sdk.complete = AsyncMock(return_value=json.dumps(dict(relevance='unknown', summary=summary,
         risks=[], opportunities=[], recommendations=[]), ensure_ascii=False))
     return module.SyntheticNewsExecutionService(sessions, corpus_loader=corpus,
-        confirm_synthetic=True, fake_sdk=sdk), sdk
+        confirm_synthetic=True, fake_sdk=sdk, session_token=sessions.synthetic_test_token), sdk
 
 
 @pytest.mark.parametrize('summary,status,expected_code', [

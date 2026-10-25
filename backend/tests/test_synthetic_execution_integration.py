@@ -9,7 +9,7 @@ from repositories.evidence_repository import EvidenceRepository
 from services import synthetic_news_execution_service as module
 from services.company_analysis_service import CompanyAnalysisService
 from services.company_context_service import CompanyContextExternalTransferBlocked
-from test_job_claim_integration import job_database
+from synthetic_actor_fixture import job_database
 from test_news_identity_migration import identity_dsn
 
 pytestmark = pytest.mark.integration
@@ -29,7 +29,8 @@ async def seed(connection, news_id):
 
 
 def service(sessions, **kwargs):
-    return module.SyntheticNewsExecutionService(sessions, corpus_loader=corpus, confirm_synthetic=True, **kwargs)
+    return module.SyntheticNewsExecutionService(sessions, corpus_loader=corpus, confirm_synthetic=True,
+        session_token=sessions.synthetic_test_token, **kwargs)
 
 
 def test_synthetic_success_atomic_completion_and_cached_result(identity_dsn, monkeypatch):
@@ -118,6 +119,10 @@ def test_eight_concurrent_synthetic_runs_have_one_dispatch(identity_dsn):
             sdk.complete.assert_awaited_once()
             for table in ['analysis_runs', 'news_analysis_jobs', 'news_analysis_attempts', 'company_news_analyses']:
                 assert await connection.fetchval('SELECT count(*) FROM '+table) == 1
+            stored = json.loads(await connection.fetchval('SELECT validation::text FROM company_news_analyses'))
+            assert stored['orchestration']['drafts'] == 1
+            assert stored['orchestration']['status'] == 'COMPLETED'
+            assert stored['orchestration']['decisions'] <= 3
     asyncio.run(scenario())
 
 
@@ -196,10 +201,10 @@ def test_company_independence_missing_input_and_external_guard(identity_dsn):
             assert a.status == b.status == 'COMPLETED'
             assert a.result.insight_id != b.result.insight_id
             assert a.preparation.prepared_input['company_source_assertions'] != b.preparation.prepared_input['company_source_assertions']
-            for source, target, code in [('SYNTH-MISSING', news, 'COMPANY_NOT_FOUND'),
-                                         ('SYNTH-COMPANY-A', news+999, 'NEWS_NOT_FOUND')]:
+            for source, target, code in [('SYNTH-MISSING', news, 'ACCESS_DENIED'),
+                                         ('SYNTH-COMPANY-A', news+999, 'ACCESS_DENIED')]:
                 report = await executor.analyze_saved(source, target)
-                assert report.status == 'FAILED' and report.error_code == code and report.fake_calls == 0
+                assert report.status == 'REJECTED' and report.error_code == code and report.fake_calls == 0
             assert await connection.fetchval('SELECT count(*) FROM analysis_runs') == 2
             other = await connection.fetchval("INSERT INTO news_articles(title,content) VALUES ('Synthetic','Synthetic new input') RETURNING id")
             with pytest.raises(CompanyContextExternalTransferBlocked):

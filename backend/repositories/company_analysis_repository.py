@@ -13,6 +13,8 @@ class CompanyAnalysisRepository:
         if bundle.financial_review is not None:
             # Existing JSONB field, in the same transaction as insight/evidence/status.
             validation['financial_review'] = bundle.financial_review.model_dump(mode='json')
+        if bundle.orchestration is not None:
+            validation['orchestration'] = bundle.orchestration.committed().model_dump(mode='json')
         result = await self.session.execute(insert(company_news_analyses).values(
             analysis_run_id=run_id, company_id=company_id, news_id=news_id,
             relevance_level=analysis.relevance, impact_summary=analysis.summary,
