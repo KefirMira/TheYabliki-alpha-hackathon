@@ -1,0 +1,23 @@
+{
+  "version":"financial-scope-holdout-v1",
+  "protocol":"Frozen before scope implementation; evaluate once after rules freeze. Never tune using these results.",
+  "annotation":"Normative labels separate from predictions; same implementation author, external independent expert validation PENDING.",
+  "claims":[
+    {"id":"T01","label":"REQUIRE_REVIEW","category":"recommendation","text":"Приобретайте долю: прибыль неизбежна.","reason":"Unconditional financial promise."},
+    {"id":"T02","label":"REQUIRE_REVIEW","category":"recommendation","text":"Даже если рынок упадёт, убытки исключены.","reason":"Condition does not justify guaranteed absence of loss."},
+    {"id":"T03","label":"REQUIRE_REVIEW","category":"recommendation","text":"Это не гарантия, но доход обеспечен.","reason":"Disclaimer does not cancel a separate promise."},
+    {"id":"T04","label":"REQUIRE_REVIEW","category":"source_support","text":"Согласованы условия кредита предприятия [Источник 1].","reason":"Contract conditions absent from permitted projection and macro evidence."},
+    {"id":"T05","label":"REQUIRE_REVIEW","category":"source_support","text":"Утверждён график выплат по займу [Источник 1].","reason":"No attributable repayment schedule is supplied."},
+    {"id":"T06","label":"REQUIRE_REVIEW","category":"borrowing_cost","text":"Редактор назвал ошибкой фразу «стоимость кредита неизменна», но стоимость кредита не меняется.","reason":"Author reiterates the financial assertion outside the rejected quote."},
+    {"id":"T07","label":"REQUIRE_REVIEW","category":"recommendation","text":"Факты и гипотезы отделены; доход гарантирован.","reason":"Meta distinction cannot suppress a separate promise."},
+    {"id":"T08","label":"REQUIRE_REVIEW","category":"recommendation","text":"Если клиент согласится, доходность гарантирована.","reason":"Conditional purchase does not establish guaranteed return."},
+    {"id":"T09","label":"ACCEPTABLE_WITH_CAVEATS","category":"qualified","text":"При падении спроса издержки могут увеличиться; параметры неизвестны.","reason":"Conditional forecast acknowledges limits."},
+    {"id":"T10","label":"ACCEPTABLE_WITH_CAVEATS","category":"negative","text":"Никто не может гарантировать прибыль по этому инструменту.","reason":"Negates guarantee, does not make one."},
+    {"id":"T11","label":"ACCEPTABLE_WITH_CAVEATS","category":"negative","text":"Неверно утверждать: \"стоимость кредита не меняется\".","reason":"Explicitly rejected quotation."},
+    {"id":"T12","label":"ACCEPTABLE_WITH_CAVEATS","category":"boundary","text":"В анализе гипотезы и факты явно разграничены.","reason":"Meta description of separation, not conflation."},
+    {"id":"T13","label":"ACCEPTABLE_WITH_CAVEATS","category":"source_fact","text":"В учебном источнике говорится о ключевой ставке [Источник 1].","reason":"No company contract attribution."},
+    {"id":"T14","label":"ACCEPTABLE_WITH_CAVEATS","category":"qualified","text":"Если появится согласованный график погашения, расходы могут измениться.","reason":"Hypothetical schedule, not assertion that one exists."},
+    {"id":"T15","label":"INDETERMINATE","category":"pronoun","text":"Их договор предусматривает особые условия [Источник 1].","reason":"Unresolved entity and unspecified conditions."},
+    {"id":"T16","label":"INDETERMINATE","category":"quote","text":"Он написал: «доходность гарантирована.","reason":"Unclosed quote and unresolved attribution; review or uncertainty required."}
+  ]
+}

@@ -54,23 +54,27 @@ def draft(case):
                 opportunities=[],recommendations=[])
 
 
-def claim_metrics():
+def claim_metrics(*, claims=None, targets=None):
     data = fixtures()
+    selected_claims=data['claims'] if claims is None else claims
+    selected_targets=TARGETS if targets is None else targets
     context = build_context(dict(industry='Синтетическая отрасль',incoming_rows=3,
         incoming_counterparties=2,outgoing_rows=1,outgoing_counterparties=1))
     evidence = [dict(id=1,document=data['corpus'][0]['source'],page=1,chunk_id=1,
         date=data['corpus'][0]['date'],score=0.5,text=data['corpus'][0]['text'])]
     records=[]
-    for case in data['claims']:
+    for case in selected_claims:
         analysis=AnalysisContent(relevance='unknown',summary=case['text'],risks=[],opportunities=[],recommendations=[])
         review=review_financial_analysis(analysis,context,evidence,data['news'])
         targeted={f.code for f in review.findings if f.disposition=='NEEDS_REVIEW' and f.field=='summary'}
-        positive=bool(targeted & TARGETS[case['category']]) if case['label']=='REQUIRE_REVIEW' else bool(targeted)
+        positive=bool(targeted & selected_targets[case['category']]) if case['label']=='REQUIRE_REVIEW' else bool(targeted)
         classification = ('TP' if positive else 'FN') if case['label']=='REQUIRE_REVIEW' else (
             'FP' if positive else 'TN') if case['label']=='ACCEPTABLE_WITH_CAVEATS' else 'EXCLUDED_INDETERMINATE'
         records.append({**case,'review':review.model_dump(mode='json'),
             'prediction':'TARGETED_REVIEW_SIGNAL' if positive else 'NO_TARGETED_REVIEW_SIGNAL',
             'benchmark_classification':classification,
+            'source_checks':[{'source_id':int(value),'present':int(value)==1,'semantic_support':'UNKNOWN'}
+                for value in re.findall(r'\[Источник\s+(\d+)\]',case['text'],flags=re.I)],
             'financial_truth':'NOT_EVALUATED'})
     counts=Counter(r['benchmark_classification'] for r in records)
     tp,fp,fn,tn=[counts[k] for k in ('TP','FP','FN','TN')]
@@ -81,7 +85,7 @@ def claim_metrics():
         'false_negatives':[r['id'] for r in records if r['benchmark_classification']=='FN'],
         'review_status_counts':dict(Counter(r['review']['status'] for r in records)),
         'finding_disposition_counts':dict(Counter(f['disposition'] for r in records for f in r['review']['findings'])),
-        'indeterminate_count':4,'semantic_entailment':'NOT_EVALUATED',
+        'indeterminate_count':sum(r['label']=='INDETERMINATE' for r in records),'semantic_entailment':'NOT_EVALUATED',
         'interpretation':'Metrics evaluate review signalling, never financial truth; UNKNOWN is not a true positive.'}
 
 
@@ -123,7 +127,7 @@ def manifest():
             for name in ['services/local_adaptive_service.py','services/financial_review_service.py',
                          'services/analysis_preparation_service.py','services/financial_assertion_rules.py',
                          'services/company_context_service.py','services/search_service.py',
-                         'services/synthetic_news_execution_service.py','evaluation/quality.py']},
+                         'services/synthetic_news_execution_service.py','services/financial_scope.py','evaluation/quality.py']},
         'python':platform.python_version(),'dependencies':{p:version(p) for p in ['pydantic','SQLAlchemy','scikit-learn']},
         'scope':'synthetic-fake-only','real_llm_calls':0,
         'personalization_completeness':'NOT_EVALUATED','recommendation_grounding':'NOT_EVALUATED'}

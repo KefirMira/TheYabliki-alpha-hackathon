@@ -49,8 +49,10 @@ class LocalAdaptiveAgent:
 
     def observe(self, payload, review=None):
         facts = payload['company_source_assertions']['facts']
+        unresolved = set() if review is None else {f.field for f in review.findings if f.code=='CLAIM_SCOPE_UNRESOLVED'}
         fields = [] if review is None else list(dict.fromkeys(f.field for f in review.findings
-            if f.disposition == 'NEEDS_REVIEW' and f.code in CORRECTABLE and ITEM.fullmatch(f.field)))[:16]
+            if f.disposition == 'NEEDS_REVIEW' and f.code in CORRECTABLE and ITEM.fullmatch(f.field)
+            and f.field not in unresolved))[:16]
         return Observation(stage='review' if review else 'evidence',
             missing_context=len(payload['company_source_assertions']['missing']),
             context_partial=not any(key in facts for key in ('industry','okved_code')),

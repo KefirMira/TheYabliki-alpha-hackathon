@@ -5,6 +5,7 @@ import re
 from schemas.financial_review import FinancialFinding, FinancialReview
 from schemas.persisted_analysis import RetrievedEvidence
 from services.financial_assertion_rules import financial_assertion_flags
+from services.financial_scope import speech_spans, contract_grounding_required, FINANCIAL
 
 QUALIFIED = re.compile(r'\b(?:если|возможно|может|могут|могло|предположим)\b|при\s+условии|'
     r'нельзя\s+(?:утверждать|считать|гарантировать)|не\s+(?:означает|гарантирует|доказывает)|'
@@ -62,18 +63,30 @@ def review_financial_analysis(analysis, company_context, evidence, news):
 
     for field, value in fields:
         # Keep decimal points and source labels; this is segmentation, not semantic parsing.
-        for claim in re.split(r'(?<=[.!?;])\s+|\n+', value):
+        for span in speech_spans(value):
+            claim = span.text
             if not claim.strip():
                 continue
             lower = claim.casefold()
-            flags = financial_assertion_flags(claim)
+            passive = span.mode in {'REJECTED_QUOTE', 'META_DISTINCTION'}
+            flags = [] if passive else financial_assertion_flags(claim)
             qualified = bool(QUALIFIED.search(lower))
-            loan = bool(LOAN.search(lower))
-            company = bool(COMPANY.search(lower))
+            loan = not passive and bool(LOAN.search(lower))
+            company = not passive and bool(COMPANY.search(lower))
+            if span.mode == 'UNRESOLVED' and FINANCIAL.search(lower):
+                add('CLAIM_SCOPE_UNRESOLVED', field, claim,
+                    'Область цитаты/позиция автора неоднозначна. Это не освобождает финансовое утверждение от проверки и не доказывает авторство.',
+                    disposition='UNKNOWN', severity='INFO')
+            if 'UNCONDITIONAL_FINANCIAL_OUTCOME' in flags:
+                add('UNCONDITIONAL_FINANCIAL_OUTCOME', field, claim,
+                    'Безусловный финансовый результат не обоснован разрешёнными входами. Это сигнал проверки, не доказательство ложности или пригодности рекомендации.')
+            if not passive and contract_grounding_required(claim):
+                add('CONTRACT_FACT_GROUNDING_REQUIRED', field, claim,
+                    'В company-context-v1 нет допустимой подтверждённой проекции условий/графика договора. Атрибуция и смысловая поддержка источником не установлены; наличие ссылки/совпадение слов этого не меняет.')
             if 'UNSUPPORTED_UNCHANGED_BORROWING_COST' in flags:
                 add('UNSUPPORTED_UNCHANGED_BORROWING_COST', field, claim,
                     'Категоричная неизменность стоимости не подтверждена доступным контекстом. Неизменная ключевая ставка сама по себе не устанавливает все условия кредита; это сигнал проверки, не доказательство ложности.')
-            if PAYMENT_INVARIANCE.search(lower):
+            if not passive and PAYMENT_INVARIANCE.search(lower):
                 add('PAYMENT_INVARIANCE_REQUIRES_REVIEW', field, claim,
                     'Даже условная привязка к ключевой ставке не устанавливает все компоненты платежа. Проверить договор, комиссии и график; формулировка не объявляется ложной.')
             if loan:
@@ -84,7 +97,7 @@ def review_financial_analysis(analysis, company_context, evidence, news):
                 if company and not qualified:
                     add('MISSING_CREDIT_TERMS_QUALIFICATION', field, claim,
                         'Утверждение о компании/договоре не обозначено как условное при неизвестных кредитных условиях. Эвристика не определяет истинность утверждения.')
-            numbers = [m.group() for m in FINANCIAL_NUMBER.finditer(claim)]
+            numbers = [] if passive else [m.group() for m in FINANCIAL_NUMBER.finditer(claim)]
             for number in numbers:
                 forms = numeric_forms(number)
                 absent = not forms.issubset(supplied_numbers)
@@ -101,10 +114,10 @@ def review_financial_analysis(analysis, company_context, evidence, news):
             if company and not qualified and re.search(r'гарантирован|обязательно|точно|получит|составит|достигнет', lower):
                 add('COMPANY_PROJECTION_AS_FACT', field, claim,
                     'Прогноз о компании сформулирован категорично. Проверить, не выдано ли отраслевое предположение за факт; эвристика не устанавливает ложность.')
-            if re.search(r'по\s+(?:количеств\w*|числ\w*)\s+плат[её]ж|из\s+числа\s+контрагент', lower) and re.search(r'оборот|прибыл|долг|выручк', lower):
+            if not passive and re.search(r'по\s+(?:количеств\w*|числ\w*)\s+плат[её]ж|из\s+числа\s+контрагент', lower) and re.search(r'оборот|прибыл|долг|выручк', lower):
                 add('STRUCTURAL_COUNT_AS_FINANCIAL_INFERENCE', field, claim,
                     'Структурные счётчики платёжных строк/контрагентов не задают денежный оборот, прибыль или долг. Проверить смешение вычислений и фактов.')
-            if re.search(r'факт|по\s+данным\s+(?:компании|профиля)', lower) and re.search(r'предполож|гипотез|возможно', lower):
+            if not passive and re.search(r'факт|по\s+данным\s+(?:компании|профиля)', lower) and re.search(r'предполож|гипотез|возможно', lower):
                 add('FACT_ASSUMPTION_BOUNDARY_REQUIRES_REVIEW', field, claim,
                     'В одном фрагменте объединены признаки факта и предположения. Проверка не различает корректное противопоставление и ошибочное смешение: нужен эксперт.')
             for citation in CITATION.finditer(claim):

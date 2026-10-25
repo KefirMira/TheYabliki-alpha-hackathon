@@ -1,0 +1,15 @@
+{
+  "protocol": "Frozen after 93 development tests, before first holdout evaluation. Do not tune using holdout results.",
+  "baseline_head": "5b124c1f95e2a64b36c3a62b16081142f0aef911",
+  "holdout_sha256": "78a24edea11af04ce24a8b28b5742a213746561304753c74c579730a0a566dee",
+  "controls_sha256": "1a56ba5ac23ac5068534fe2556ddb17f2c71ad8c440a2f432170e2c59a743042",
+  "rules_sha256": {
+    "services/financial_scope.py": "12089bce90c640b79e98ddf5ab517bbb8e2c8fbc7628ea54277aff4171bf3354",
+    "services/financial_review_service.py": "d2690084576dd68117f75ea124c5e6872a7e9e2f736506af176d6918705662f8",
+    "services/financial_assertion_rules.py": "fca8936e61bcb5cd7d5cb10b8d0d5a7cd0228dace593c9cbc0c2b781956ffa20",
+    "services/local_adaptive_service.py": "80e8914fbd9f9154e07c0c4a5bdec61a2d3ccb4c063e0e374e69bd0a1bc90f1a",
+    "evaluation/quality.py": "f466fae83f475e168b190c924e40f2896ce982d1900ec199f42972deb1d10764",
+    "evaluation/quality_scope.py": "580fe8931f5000192efb20d01c3970e5ecb5f169a207dcb6b66d15ad98757f44"
+  },
+  "external_expert_validation": "PENDING"
+}

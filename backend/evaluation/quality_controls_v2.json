@@ -1,0 +1,30 @@
+{
+  "version":"financial-scope-controls-v1",
+  "annotation":"Authored normative contrasts, independent of predictions; external expert review PENDING.",
+  "claims":[
+    {"id":"C01","label":"REQUIRE_REVIEW","category":"recommendation","text":"Вложите средства: прибыль гарантирована без оговорок.","reason":"Unconditional financial outcome."},
+    {"id":"C02","label":"REQUIRE_REVIEW","category":"recommendation","text":"Доходность обеспечена при любых условиях.","reason":"Certainty without permissible basis."},
+    {"id":"C03","label":"REQUIRE_REVIEW","category":"recommendation","text":"Если приобретёте актив, прибыль гарантирована.","reason":"If does not cancel a guarantee."},
+    {"id":"C04","label":"REQUIRE_REVIEW","category":"recommendation","text":"Возможен рост затрат. Прибыль неизбежна.","reason":"Qualification in another sentence cannot cancel guarantee."},
+    {"id":"C05","label":"REQUIRE_REVIEW","category":"recommendation","text":"Различаем гипотезу и факт: доход гарантирован.","reason":"Meta wording cannot hide substantive guarantee."},
+    {"id":"C06","label":"REQUIRE_REVIEW","category":"borrowing_cost","text":"Комментатор пишет: «стоимость кредита не меняется». Мы подтверждаем это.","reason":"Quote is not rejected; uncertainty cannot exempt claim."},
+    {"id":"C07","label":"REQUIRE_REVIEW","category":"borrowing_cost","text":"Ошибка: «стоимость кредита не меняется». Но стоимость кредита остаётся прежней.","reason":"Separate author assertion survives rejected quote."},
+    {"id":"C08","label":"REQUIRE_REVIEW","category":"source_support","text":"Установлены условия кредита фирмы [Источник 1].","reason":"Verified terms not in current context."},
+    {"id":"C09","label":"REQUIRE_REVIEW","category":"source_support","text":"График погашения согласован [Источник 1].","reason":"Schedule basis absent."},
+    {"id":"C10","label":"REQUIRE_REVIEW","category":"source_support","text":"Предусмотрены условия займа предприятия [Источник 1].","reason":"Macro source cannot fill missing permitted contract facts."},
+    {"id":"C11","label":"REQUIRE_REVIEW","category":"contract","text":"Кредит компании составляет 765432 рублей на 27 месяцев.","reason":"Contract amounts and duration absent."},
+    {"id":"C12","label":"REQUIRE_REVIEW","category":"company_fact","text":"Компания импортирует продукцию.","reason":"Industry and activity flags do not prove transaction."},
+    {"id":"C13","label":"ACCEPTABLE_WITH_CAVEATS","category":"negative","text":"Ошибочно утверждать: «стоимость кредита не меняется».","reason":"Explicit rejected quote, not author financial conclusion."},
+    {"id":"C14","label":"ACCEPTABLE_WITH_CAVEATS","category":"negative","text":"Неверный вывод: \"доход гарантирован\".","reason":"Explicit rejection using ASCII quotes."},
+    {"id":"C15","label":"ACCEPTABLE_WITH_CAVEATS","category":"boundary","text":"Факты и гипотезы в документе разграничены.","reason":"Meta distinction, no substantive finance claim."},
+    {"id":"C16","label":"ACCEPTABLE_WITH_CAVEATS","category":"boundary","text":"Это предположение, а не установленный факт.","reason":"Marks distinction explicitly."},
+    {"id":"C17","label":"ACCEPTABLE_WITH_CAVEATS","category":"qualified","text":"Если договор предусматривает плавающую ставку, расходы могут измениться.","reason":"Conditional forecast."},
+    {"id":"C18","label":"ACCEPTABLE_WITH_CAVEATS","category":"negative","text":"Доход не гарантирован.","reason":"Negation of guarantee."},
+    {"id":"C19","label":"ACCEPTABLE_WITH_CAVEATS","category":"qualified","text":"Если будет согласован график погашения, возможны выплаты по нему.","reason":"Hypothetical schedule, not established fact."},
+    {"id":"C20","label":"ACCEPTABLE_WITH_CAVEATS","category":"source_fact","text":"В учебной аналитике обсуждается ставка регулятора [Источник 1].","reason":"Attributed macro topic, no contractual inference."},
+    {"id":"C21","label":"INDETERMINATE","category":"quote","text":"Автор сообщает: «доход гарантирован».","reason":"Unresolved speaker, no quote exemption."},
+    {"id":"C22","label":"INDETERMINATE","category":"quote","text":"Ошибочная фраза: «он сказал \"прибыль гарантирована\"».","reason":"Nested quote beyond bounded scope confidence."},
+    {"id":"C23","label":"INDETERMINATE","category":"pronoun","text":"Его график определён [Источник 1].","reason":"Unresolved schedule/entity."},
+    {"id":"C24","label":"INDETERMINATE","category":"mixed","text":"По данным профиля возможно увеличение прибыли.","reason":"Unclear fact/forecast attribution."}
+  ]
+}
