@@ -67,6 +67,26 @@ class SyntheticNewsExecutionService:
             raise ValueError('LOCAL_FAKE_SDK_REQUIRED')
         self.evidence_repository = evidence_repository
 
+    report_type = SyntheticExecution
+    trace_type = OrchestrationTrace
+    model_name = FAKE_MODEL
+    prompt_version = 'local-adaptive-v1'
+    mode_warning = 'SYNTHETIC_FAKE_ANALYSIS_NOT_FOR_DECISIONS'
+    draft_reason = 'LOCAL_FAKE_COMPLETED'
+    execution_plan = EXECUTION_PLAN
+
+    def record_preparation(self, report, preparation):
+        report.preparation = preparation
+
+    def prepare_payload(self, payload, source_id):
+        return payload
+
+    async def draft(self, payload, report):
+        if report.fake_calls:
+            raise LocalExecutionStopped('LOCAL_FAKE_ALREADY_CALLED')
+        report.fake_calls += 1
+        return await self.fake_sdk.complete(copy.deepcopy(payload))
+
     def _check_target(self, source_id):
         engine = self.sessions.kw.get('bind')
         url = getattr(engine, 'url', None)
@@ -79,9 +99,9 @@ class SyntheticNewsExecutionService:
 
     async def analyze_saved(self, source_id, news_id):
         # All per-execution state is local, even when this service handles concurrent calls.
-        report = SyntheticExecution(status='FAILED', steps=[
+        report = self.report_type(status='FAILED', steps=[
             PreparationStep(tool=tool, purpose=purpose, required_data=needs)
-            for tool, purpose, needs in EXECUTION_PLAN])
+            for tool, purpose, needs in self.execution_plan])
         active = report.steps[0]
         safe_error = None
         agent = None
@@ -104,13 +124,13 @@ class SyntheticNewsExecutionService:
                     raise LocalExecutionStopped('EXISTING_JOB_DISPATCH_REQUIRED')
                 finish({'claimed': True}, {'existing_job_dispatch': True})
                 start(1, {'company_id': source_id, 'news_id': news_id})
-                report.orchestration = OrchestrationTrace()
+                report.orchestration = self.trace_type()
                 agent = LocalAdaptiveAgent(self.fake_sdk, report.orchestration)
                 agent.log('PREPARE','LOCAL_SNAPSHOT')
                 corpus = copy.deepcopy(self.corpus_loader())
                 preparation = await AnalysisPreparationService(
                     self.sessions, corpus_loader=lambda: corpus).prepare(source_id, news_id)
-                report.preparation = preparation
+                self.record_preparation(report, preparation)
                 if preparation.status != 'PREPARED_LOCAL' or preparation.prepared_input is None:
                     if preparation.error_code == 'NO_RAG_CONTEXT':
                         from schemas.orchestration import Observation
@@ -123,6 +143,7 @@ class SyntheticNewsExecutionService:
                 expected = copy.deepcopy(payload['analytical_source_assertions'])
                 if [fragment.model_dump() for fragment in preparation.local_stub_result.evidence] != expected:
                     raise LocalExecutionStopped('PREPARATION_EVIDENCE_MISMATCH')
+                payload = self.prepare_payload(payload, source_id)
                 await agent.select_evidence(payload, corpus)
                 expected = copy.deepcopy(payload['analytical_source_assertions'])
                 finish(payload, {'trace_id': preparation.trace_id, 'external_transfer_allowed': False})
@@ -132,19 +153,16 @@ class SyntheticNewsExecutionService:
                     nonlocal raw_response
                     if question != payload['question'] or search_query != news or include_evidence is not True:
                         raise LocalExecutionStopped('LOCAL_INPUT_MISMATCH')
-                    if report.fake_calls:
-                        raise LocalExecutionStopped('LOCAL_FAKE_ALREADY_CALLED')
                     start(2, {'input_sha256': digest(payload)})
-                    report.fake_calls += 1
                     report.orchestration.drafts += 1
-                    raw = await self.fake_sdk.complete(copy.deepcopy(payload))
+                    raw = await self.draft(payload, report)
                     raw_response = raw
-                    agent.log('DRAFT','LOCAL_FAKE_COMPLETED',after_sha256=digest(raw))
-                    finish(raw, {'engine': FAKE_MODEL, 'paid_calls': 0})
+                    agent.log('DRAFT',self.draft_reason,after_sha256=digest(raw))
+                    finish(raw, {'engine': self.model_name, 'paid_calls': report.paid_calls})
                     start(3, {'response_sha256': digest(raw), 'evidence_sha256': digest(expected)})
                     return {'analysis': raw, 'sources': [{key: item[key] for key in ('id', 'document', 'page', 'score')}
                                                        for item in expected],
-                            'evidence': copy.deepcopy(expected), 'model_name': FAKE_MODEL}
+                            'evidence': copy.deepcopy(expected), 'model_name': self.model_name}
 
                 # Existing parsing, validation, response assembly; no duplicate persistence logic.
                 bundle = await analyze_for_company_with_evidence(news, company, _local_rag=local_rag)
@@ -160,7 +178,7 @@ class SyntheticNewsExecutionService:
                         if question != payload['question'] or search_query != news or include_evidence is not True:
                             raise LocalExecutionStopped('LOCAL_INPUT_MISMATCH')
                         return {'analysis':raw, 'sources':[{k:e[k] for k in ('id','document','page','score')} for e in expected],
-                                'evidence':copy.deepcopy(expected), 'model_name':FAKE_MODEL}
+                                'evidence':copy.deepcopy(expected), 'model_name':self.model_name}
                     return await analyze_for_company_with_evidence(news,company,_local_rag=replay)
                 bundle, review = await agent.check_and_correct(bundle,raw_response,payload,review_financial_analysis,reassemble)
                 report.financial_review = review
@@ -170,10 +188,10 @@ class SyntheticNewsExecutionService:
                 bundle.orchestration = report.orchestration.checked()
                 bundle.analysis.validation = ValidationResult(passed=False, warnings=list(dict.fromkeys([
                     *bundle.analysis.validation.warnings,
-                    'SYNTHETIC_FAKE_ANALYSIS_NOT_FOR_DECISIONS', 'FACTUAL_ACCURACY_NOT_ASSESSED',
+                    self.mode_warning, 'FACTUAL_ACCURACY_NOT_ASSESSED',
                     'FINANCIAL_CORRECTNESS_NOT_ESTABLISHED',
                     *[finding.code for finding in review.findings]])))
-                bundle.prompt_version = 'local-adaptive-v1'
+                bundle.prompt_version = self.prompt_version
                 finish(bundle.model_dump(mode='json'), {'schema_valid': True, 'exact_evidence': True,
                     'factual_accuracy': 'NOT_ASSESSED', 'human_review_required': True})
                 start(5, {'validated_bundle_sha256': digest(bundle.model_dump(mode='json'))})

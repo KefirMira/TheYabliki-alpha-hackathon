@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from schemas.analysis_preparation import AnalysisPreparation, PreparationStep
 from schemas.company_analysis_api import CreatedCompanyAnalysis
 from schemas.financial_review import FinancialReview
-from schemas.orchestration import OrchestrationTrace
+from schemas.orchestration import OrchestrationTrace, GatewayOrchestrationTrace
 
 
 class SyntheticExecution(BaseModel):
@@ -23,3 +23,9 @@ class SyntheticExecution(BaseModel):
     paid_calls: Literal[0] = 0
     factual_accuracy: Literal['NOT_ASSESSED'] = 'NOT_ASSESSED'
     human_review_required: Literal[True] = True
+
+
+class SyntheticGatewayExecution(SyntheticExecution):
+    mode: Literal['synthetic-gateway-only'] = 'synthetic-gateway-only'
+    orchestration: GatewayOrchestrationTrace | None = None
+    paid_calls: int = 0

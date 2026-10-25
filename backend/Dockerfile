@@ -11,6 +11,7 @@ COPY repositories ./repositories
 COPY schemas ./schemas
 COPY services ./services
 COPY company_import ./company_import
+COPY fixtures/gateway_macro_v1.json ./fixtures/gateway_macro_v1.json
 USER backend
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -74,3 +74,25 @@ class OrchestrationTrace(BaseModel):
         result.status = 'COMPLETED'
         result.events.append(TraceEvent(tool='PERSIST', reason='ATOMIC_COMMIT'))
         return result.checked()
+
+
+class GatewayOrchestrationTrace(OrchestrationTrace):
+    """Separate accounting contract; the original local trace remains paid_calls=0."""
+    version: Literal['synthetic-gateway-v1'] = 'synthetic-gateway-v1'
+    transport: Literal['fake', 'organizer'] = 'fake'
+    sdk_requests: int = Field(default=0, ge=0, le=1)
+    paid_calls: int = Field(default=0, ge=0, le=1)
+    outbound_sha256: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+    usage: dict[Literal['prompt_tokens','completion_tokens','total_tokens','reasoning_tokens'], int] | None = None
+    finish_reason: Literal['stop','length','other'] | None = None
+    request_outcome: Literal['NOT_SENT','UNKNOWN','RESPONSE_VALIDATED'] = 'NOT_SENT'
+    elapsed_ms: int = Field(default=0, ge=0)
+    error_code: str | None = Field(default=None,pattern=r'^[A-Z_]+$',max_length=80)
+
+    @model_validator(mode='after')
+    def accounting(self):
+        if self.paid_calls != (self.sdk_requests if self.transport == 'organizer' else 0):
+            raise ValueError('INVALID_DISPATCH_ACCOUNTING')
+        if self.usage and any(isinstance(v,bool) or v<0 for v in self.usage.values()):
+            raise ValueError('INVALID_USAGE')
+        return self

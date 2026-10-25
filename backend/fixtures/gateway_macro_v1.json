@@ -1,0 +1,20 @@
+{
+  "version": "gateway-macro-v1",
+  "source_id": "SYNTH-GATEWAY-MACRO-A",
+  "news": "Синтетическая новость: учебный регулятор сохранил ключевую ставку на уровне 14%. Это вымышленный сценарий.",
+  "context": {
+    "version": "company-context-v1",
+    "facts": {
+      "industry": {"value": "Синтетическое производство оборудования", "origin": "approved-synthetic-fixture"},
+      "okved_code": {"value": "28.99", "origin": "approved-synthetic-fixture"},
+      "credit_product": {"value": true, "origin": "approved-synthetic-fixture"}
+    },
+    "computed": {},
+    "missing": ["credit_exposure", "credit_terms", "revenue_currency", "revenue_year"],
+    "model_assumptions": []
+  },
+  "corpus": [
+    {"source": "synthetic-gateway-rate.txt", "page": 1, "chunk_id": 1, "text": "Синтетическая ключевая ставка и кредитование. Неизменная ставка регулятора не доказывает неизменность полной стоимости займа компании: условия договора неизвестны."},
+    {"source": "synthetic-gateway-production.txt", "page": 1, "chunk_id": 2, "text": "Синтетическая аналитика производства оборудования: кредитование, спрос и инвестиции могут зависеть от ставок. Это условная гипотеза, не установленный факт конкретной компании."}
+  ]
+}

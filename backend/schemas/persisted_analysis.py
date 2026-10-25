@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from schemas.analysis import CompanyAnalysisResponse
 from schemas.financial_review import FinancialReview
-from schemas.orchestration import OrchestrationTrace
+from schemas.orchestration import OrchestrationTrace, GatewayOrchestrationTrace
 
 
 class RetrievedEvidence(BaseModel):
@@ -23,7 +23,7 @@ class PersistableAnalysis(BaseModel):
     model_name: str | None = None
     prompt_version: str = "company-json-v1"
     financial_review: FinancialReview | None = None
-    orchestration: OrchestrationTrace | None = None
+    orchestration: GatewayOrchestrationTrace | OrchestrationTrace | None = None
 
     @model_validator(mode="after")
     def check_sources(self):

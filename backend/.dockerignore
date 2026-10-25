@@ -21,3 +21,5 @@
 !auth_demo.py
 !company_import/
 !company_import/*.py
+!fixtures/
+!fixtures/gateway_macro_v1.json
