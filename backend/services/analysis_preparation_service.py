@@ -17,6 +17,7 @@ from services.company_profile_service import to_company_profile
 from services.knowledge_base_service import load_knowledge_base
 from services.personalization_service import analyze_for_company_with_evidence
 from services.search_service import search_chunks
+from services.preparation_diagnostics import safe_diagnostic
 
 MAX_INPUT_BYTES = 160_000
 PLAN = (
@@ -150,6 +151,8 @@ class AnalysisPreparationService:
             report.status = 'PREPARED_LOCAL'
         except Exception as error:
             report.error_code = error.code if isinstance(error, PreparationStopped) else 'PREPARATION_FAILED'
+            if not isinstance(error, PreparationStopped):
+                report.diagnostic = safe_diagnostic(active.tool if active is not None else 'UNKNOWN', error)
             report.status = 'INCOMPLETE' if report.error_code == 'NO_RAG_CONTEXT' else 'FAILED'
             if active is not None:
                 active.status = 'FAILED'

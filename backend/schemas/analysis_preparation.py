@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from schemas.persisted_analysis import PersistableAnalysis
+from schemas.preparation_diagnostics import PreparationDiagnostic
 
 
 class PreparationStep(BaseModel):
@@ -26,4 +27,5 @@ class AnalysisPreparation(BaseModel):
     external_transfer_allowed: Literal[False] = False
     paid_calls: Literal[0] = 0
     error_code: str | None = None
+    diagnostic: PreparationDiagnostic | None = None
     human_review_required: Literal[True] = True

@@ -62,6 +62,8 @@ def test_preparation_real_repository_snapshot_no_writes_or_connection_during_rag
             blocked = await AnalysisPreparationService(sessions, corpus_loader=corpus,
                 context_loader=forbidden_write).prepare('SYNTH-COMPANY-A', news_id)
             assert blocked.status == 'FAILED' and blocked.error_code == 'PREPARATION_FAILED'
+            assert blocked.diagnostic.stage == 'company_context'
+            assert blocked.diagnostic.family == 'DATABASE' and blocked.diagnostic.retry_allowed is False
             assert before == await fingerprint()
             reused = await CompanyAnalysisService(sessions).analyze_saved('SYNTH-COMPANY-A', news_id)
             assert reused.reused and reused.insight_id == saved.insight_id
