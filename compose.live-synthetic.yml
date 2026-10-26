@@ -1,0 +1,109 @@
+# Opt-in localhost synthetic live demo. Public DB/login credentials, never production.
+name: pulse-live-synthetic-demo
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: test_live_synthetic_demo
+      POSTGRES_USER: pulse_live
+      POSTGRES_PASSWORD: "0123456789abcdef0123456789abcdef"
+    volumes:
+      - live_synthetic_demo_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./database/migrations/002_pulse_features.sql:/docker-entrypoint-initdb.d/002.sql:ro
+      - ./database/migrations/003_integrity.sql:/docker-entrypoint-initdb.d/003.sql:ro
+      - ./database/migrations/004_news_external_identity.sql:/docker-entrypoint-initdb.d/004.sql:ro
+      - ./database/migrations/005_saved_news_analysis_jobs.sql:/docker-entrypoint-initdb.d/005.sql:ro
+      - ./database/migrations/006_news_company_matching.sql:/docker-entrypoint-initdb.d/006.sql:ro
+      - ./database/migrations/007_auth_access.sql:/docker-entrypoint-initdb.d/007.sql:ro
+      - ./database/saved-pilot-demo-marker.sql:/docker-entrypoint-initdb.d/900_marker.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U pulse_live -d test_live_synthetic_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  backend:
+    image: pulse-live-synthetic-backend:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.saved-pilot
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pulse_live:0123456789abcdef0123456789abcdef@postgres:5432/test_live_synthetic_demo
+      AI_MODE: "${AI_MODE:-full}"
+      SAVED_PILOT_OFFLINE: "${SAVED_PILOT_OFFLINE:-0}"
+      LIVE_SYNTHETIC_ANALYSIS_ENABLED: "${LIVE_SYNTHETIC_ANALYSIS_ENABLED:-false}"
+      LIVE_SYNTHETIC_MAX_REQUESTS: "${LIVE_SYNTHETIC_MAX_REQUESTS:-5}"
+      DATASET_AI_TRANSPORT: "off"
+      DATASET_AI_MANIFEST: ""
+      DATASET_AI_MANIFEST_SHA256: ""
+      LLM_API_KEY: "${LLM_API_KEY:?Set LLM_API_KEY in local .env}"
+      LLM_BASE_URL: "${LLM_BASE_URL:-https://changellenge.up.railway.app/v1}"
+      LLM_MODEL: "${LLM_MODEL:-deepseek/deepseek-v4.1-flash}"
+      CORS_ORIGINS: http://localhost:${LIVE_SYNTHETIC_FRONTEND_PORT:-8092},http://127.0.0.1:${LIVE_SYNTHETIC_FRONTEND_PORT:-8092}
+      RAG_KNOWLEDGE_BASE_DIR: /tmp/empty-synthetic-rag
+    ports:
+      - "127.0.0.1:${LIVE_SYNTHETIC_BACKEND_PORT:-8012}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      # This path needs a seeded isolated DB and opt-in config, not RAG.
+      # General /ready is unchanged. Probe never calls LLM.
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import asyncio, os, urllib.request, asyncpg
+          from sqlalchemy.engine import make_url
+          from api.live_synthetic import enabled
+          async def check():
+              url = make_url(os.environ['DATABASE_URL'])
+              c = await asyncpg.connect(host=url.host, port=url.port, user=url.username, password=url.password, database=url.database, timeout=5)
+              try:
+                  assert await c.fetchval("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=current_database()") == 'pulse:isolated-saved-pilot-demo:v1'
+                  assert await c.fetchval("SELECT count(*) FROM auth_user_companies m JOIN auth_users u ON u.id=m.user_id WHERE u.login='synthetic-pilot-viewer' AND u.is_active AND NOT m.can_analyze") == 3
+              finally:
+                  await c.close()
+          try:
+              assert enabled()
+              urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)
+              asyncio.run(check())
+          except Exception:
+              raise SystemExit('Live readiness failed: verify isolated DB and opt-in config') from None
+      interval: 3s
+      timeout: 12s
+      retries: 20
+      start_period: 10s
+  seed:
+    image: pulse-live-synthetic-backend:local
+    network_mode: service:postgres
+    environment:
+      SAVED_PILOT_DEMO_PASSWORD: "PulseDemo2026Viewer"
+      SAVED_PILOT_DATABASE_URL: postgresql+asyncpg://pulse_live:0123456789abcdef0123456789abcdef@127.0.0.1:5432/test_live_synthetic_demo
+      LLM_API_KEY: ""
+      LLM_BASE_URL: ""
+      LLM_MODEL: ""
+    command: [python, -B, -m, saved_pilot_demo, --expected-database, test_live_synthetic_demo, --apply, --confirm-isolated, --password-env, --verify-backend-connection]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    image: pulse-live-synthetic-frontend:local
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${LIVE_SYNTHETIC_FRONTEND_PORT:-8092}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  live_synthetic_demo_data:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: "${LIVE_SYNTHETIC_SUBNET:-172.16.241.0/24}"

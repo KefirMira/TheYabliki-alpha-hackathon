@@ -1,4 +1,4 @@
-# Пульс бизнеса — версия для сдачи v1.31.0
+# Пульс бизнеса — версия для сдачи v1.31.1
 
 ## Рекомендуемый запуск для жюри — одна команда, без .env
 
@@ -118,52 +118,82 @@ docker compose -f compose.saved-pilot-demo.yml -f compose.saved-pilot.network.ym
 При `DATABASE_TABLE_MISSING` / `DATABASE_*_SCHEMA_MISMATCH` проверьте миграции и
 целевую БД, не обходите readiness. [Происхождение ответа](docs/SAVED_LLM_PILOT_DEMO.md).
 
-## Отдельный live-режим синтетического анализа (opt-in)
+## Проверка live-анализа жюри
 
-Основной saved-pilot выше остаётся **офлайн**, без `.env` и API-ключа.
-Live-режим **выключен по умолчанию** и не включён в публичном Compose.
-Не меняйте для него работающий saved-pilot: используйте отдельные backend/frontend,
-свободные localhost-порты и изолированную копию demo-БД с теми же ACL.
+Нужны Git, Docker Desktop с Linux containers, Docker Compose v2, интернет для первой
+сборки и **собственный действующий API-ключ шлюза организаторов**. Офлайн-запуск выше
+по-прежнему не требует ключа или `.env`. Для отдельного live-режима (PowerShell):
 
-Для процесса backend обязательны следующие локальные настройки (ключ не хранить в Git):
-
-```dotenv
-LIVE_SYNTHETIC_ANALYSIS_ENABLED=true
-AI_MODE=full
-SAVED_PILOT_OFFLINE=0
-LLM_BASE_URL=https://changellenge.up.railway.app/v1
-LLM_MODEL=deepseek/deepseek-v4.1-flash
-LIVE_SYNTHETIC_MAX_REQUESTS=1
+```powershell
+git clone https://github.com/KefirMira/TheYabliki-alpha-hackathon.git
+cd TheYabliki-alpha-hackathon
+Copy-Item .env.example .env
 ```
 
-Также задайте `LLM_API_KEY` из своего локального секретного окружения и `DATABASE_URL`
-изолированной demo-БД. Frontend должен обращаться к этому backend (nginx proxy или
-`VITE_API_PROXY_TARGET` при локальном Vite). Секретный ключ **никогда** не передаётся
-во frontend. Публичные demo-credentials и стандартный Compose менять не требуется.
+В редакторе заполните **`LLM_API_KEY` в локальном `.env`**. Остальные live-настройки
+уже заданы: `LLM_BASE_URL=https://changellenge.up.railway.app/v1`,
+`LLM_MODEL=deepseek/deepseek-v4.1-flash`, `LIVE_SYNTHETIC_ANALYSIS_ENABLED=true`,
+`AI_MODE=full`, `SAVED_PILOT_OFFLINE=0`, `LIVE_SYNTHETIC_MAX_REQUESTS=5`.
+Поля `SUBMISSION_*` не используются этим Compose. Не коммитьте `.env` и не вводите
+ключ во frontend. После заполнения ключа запуск одной командой:
 
-Войти → выбрать компанию → «Проанализировать новость» → ввести заголовок и текст →
-подтвердить право передачи текста → «Проанализировать». Открытие страницы не вызывает
-LLM. Отдельный endpoint: `POST /api/companies/{source_id}/live-synthetic/analyses`;
-`GET /api/companies/{source_id}/live-synthetic/status` проверяет доступность без LLM.
-Сессия и membership проверяются на сервере; общие права записи не выдаются.
+```powershell
+docker compose -f compose.live-synthetic.yml up --build -d --wait
+```
 
-Ограничения: только три закреплённых **синтетических профиля из fixtures**, без
-передачи DB-контекста; новость — непроверенные данные пользователя. Не вводите
-секреты и конфиденциальные сведения. URL только передаётся как пользовательская
-ссылка, **не скачивается**. RAG не подключён, внешних evidence нет; источники не
-выдумываются. `/ready` может вернуть503 из-за RAG при `database=true`; это не сбой БД
-и не изменяет проверки готовности. Live-endpoint имеет отдельные явные условия допуска.
+- Приложение: **http://localhost:8092**; API: http://localhost:8012/docs.
+- Логин **synthetic-pilot-viewer**, пароль **PulseDemo2026Viewer**.
+- Нажмите название компании над логином в верхней панели, выберите одну из трёх
+  синтетических компаний; повторный вход не нужен.
+- Пульс → Инсайты → **«Проанализировать новость»**. Введите заголовок и текст,
+  необязательный URL; подтвердите право передачи текста и нажмите **«Проанализировать»**.
+  Не вводите конфиденциальные данные. Открытие страницы само не вызывает LLM.
+- Ожидаются вывод, риски, возможности, рекомендации, usage, SHA-256 и reviewer.
+  Внешние источники не предоставлены — это явно указано, ссылки не выдумываются.
+
+Окружение имеет собственные project `pulse-live-synthetic-demo`, PostgreSQL
+`test_live_synthetic_demo` и том `live_synthetic_demo_data`. Оно не использует offline-том.
+Прежний seed автоматически создаёт три синтетические компании, девять сохранённых
+анализов и read-only пользователя с серверными ACL. Публичные credentials предназначены
+только для **localhost**; не выставляйте это окружение в Интернет или production.
+Ключ передаётся только backend при запуске — не frontend, seed или в build args.
+
+Проверка запуска и безопасная остановка:
+
+```powershell
+docker compose -f compose.live-synthetic.yml ps -a
+docker compose -f compose.live-synthetic.yml logs --tail=30 seed backend
+docker compose -f compose.live-synthetic.yml stop
+```
+
+Успех: seed Exited(0), PostgreSQL/backend/frontend healthy. Live-healthcheck проверяет
+изолированную БД, read-only memberships и opt-in конфигурацию без LLM-вызова.
+Общий `/ready` не изменён: при `rag=false` и `database=true` он может вернуть503;
+это не ошибка БД. При неверном ключе/квоте сам анализ завершится ошибкой без повторов.
+Если порты заняты, измените `LIVE_SYNTHETIC_FRONTEND_PORT` и `LIVE_SYNTHETIC_BACKEND_PORT`
+в `.env`. При конфликте подсети проверьте Docker-сети и маршруты хоста, затем задайте
+свободную `LIVE_SYNTHETIC_SUBNET`. Не удаляйте чужие сети/тома и не используйте `down -v`.
+
+Ограничения: только три разрешённых **синтетических профиля из fixtures** — DB-контекст
+не отправляется. Новость непроверенная; URL не скачивается. **RAG и банковские PDF не
+подключены. Результат не сохраняется в БД/ленту** и исчезнет после обновления страницы.
+Девять сохранённых анализов не меняются. Финансовая достоверность не подтверждена;
+UNKNOWN/NEEDS_REVIEW требуют экспертной оценки.
 
 Один запрос на отправку, без retries/fallback; вход до8000 токенов с консервативной
-оценкой по UTF-8-байтам, выход до4000 включая reasoning, SDK timeout60с, операция120с.
-`LIVE_SYNTHETIC_MAX_REQUESTS` (1 по умолчанию, допустимо1–20) ограничивает число
-зарезервированных вызовов **в пределах процесса**. Счётчик сбрасывается после рестарта
-и не общий между workers; это **не гарантия денежного лимита команды**. Не повторяйте
-запрос с неизвестным исходом автоматически.
+оценкой по UTF-8-байтам, выход до4000 включая reasoning; SDK timeout60с, операция120с.
+Лимит5 по шаблону (допустимо1–20) действует **в пределах процесса**, сбрасывается при
+рестарте и не общий между workers. Это **не гарантия денежного лимита команды**.
+Не повторяйте запрос с неизвестным исходом автоматически. Seed и healthcheck не вызывают LLM.
 
-Результат показывается на текущей странице вместе с usage и reviewer, **не сохраняется
-в БД/ленту** и пропадает при обновлении страницы. Девять сохранённых анализов не меняются.
-Финансовая достоверность не подтверждена, UNKNOWN/NEEDS_REVIEW требуют экспертной оценки.
+Вернуться к offline-demo можно после остановки live, сохранив все данные:
+
+```powershell
+docker compose -f compose.saved-pilot-demo.yml up --build -d --wait
+```
+
+Offline-приложение: http://localhost:8082. Ключ и live-переменные из `.env` не включают
+LLM в offline-Compose; он продолжает работать без API-ключа.
 
 ## О продукте и ранее проверенном техническом demo
 
