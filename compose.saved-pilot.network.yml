@@ -1,0 +1,7 @@
+# Optional only when Docker cannot allocate a network automatically.
+# Choose a subnet that does not overlap Docker networks or host routes.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${SAVED_PILOT_SUBNET:?Choose an unused subnet before using this optional override}

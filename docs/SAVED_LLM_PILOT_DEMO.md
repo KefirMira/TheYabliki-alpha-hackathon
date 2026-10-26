@@ -1,3 +1,15 @@
+# Публичный запуск без .env — v1.28.2
+
+Актуальная инструкция — первая секция README. Compose использует публичные
+fixed credentials только для локального read-only synthetic demo, новый project
+pulse-saved-pilot-public и отдельный saved_pilot_public_v1282_data. Старые
+password-переменные .env игнорируются, старые тома не изменяются. Сеть по умолчанию
+выделяет Docker; для исчерпанных пулов есть отдельный явный network override.
+Учётная запись synthetic-pilot-viewer / PulseDemo2026Viewer публична, непригодна
+для production или Интернета. Новых LLM-вызовов нет. Ниже сохранены исторические
+сведения v1.28.0/v1.25.1 о происхождении и ручном импорте; их инструкции с паролями
+из .env не относятся к новому fixed-credentials Compose.
+
 # Публичный saved-pilot demo — v1.28.0
 
 Рекомендуемый автоматический Docker-запуск описан первым в README.

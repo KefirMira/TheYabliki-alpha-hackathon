@@ -1,4 +1,106 @@
-# Пульс бизнеса — версия для сдачи v1.28.1
+# Пульс бизнеса — версия для сдачи v1.28.2
+
+## Рекомендуемый запуск для жюри — одна команда, без .env
+
+Нужны Git, Docker Desktop с Linux containers, Docker Compose v2 и доступ к
+registries при первой сборке. Из корня свежего клона, **без создания .env**:
+
+~~~powershell
+docker compose -f compose.saved-pilot-demo.yml up --build -d --wait
+~~~
+
+- Приложение: **http://localhost:8082**; Swagger: http://localhost:8010/docs.
+- Логин: **synthetic-pilot-viewer**.
+- Пароль: **PulseDemo2026Viewer**.
+- Войти → единственная компания → Пульс → Инсайты → сохранённая карточка.
+
+Это сохранённый **настоящий исторический ответ DeepSeek на полностью синтетических
+данных**, не новый live-анализ и не fake-ответ. Один исходный ответ, одна компания,
+одна новость, два учебных TXT-источника; это **не аналитика Альфа-Банка**.
+Новых LLM-вызовов нет; API-ключ не нужен и в контейнере принудительно пуст.
+Финансовая достоверность не подтверждена: **16 UNKNOWN и 4 NEEDS_REVIEW**.
+
+**Credentials публичные и предназначены исключительно для локального synthetic demo.**
+Пароль PostgreSQL `0123456789abcdef0123456789abcdef` также публичный, отдельный
+от пароля входа. Они непригодны для production. Не публикуйте это окружение в
+Интернет, не подключайте к нему реальные данные. Порты привязаны к `127.0.0.1`,
+PostgreSQL наружу не публикуется, аккаунт read-only. Это не режим банковского входа.
+
+### Проверка запуска, перезапуск и старые тома
+
+~~~powershell
+docker compose -f compose.saved-pilot-demo.yml ps -a
+docker compose -f compose.saved-pilot-demo.yml logs --tail=40 seed backend
+curl.exe http://localhost:8010/ready
+~~~
+
+Успех: postgres/backend healthy, seed Exited(0), frontend Up; `/ready` — HTTP 200,
+`database=true`. В offline-режиме `rag=false` и `llm_config=false` нормальны:
+`diagnostics.required_checks` содержит только `database`.
+Seed проверяет закреплённые хеши, изоляцию БД, TCP credentials и неизменность импорта.
+Повторный запуск не создаёт дубликаты и не меняет исходный ответ/reviewer/trace.
+
+~~~powershell
+docker compose -f compose.saved-pilot-demo.yml stop
+docker compose -f compose.saved-pilot-demo.yml up --no-build --pull never -d --wait
+~~~
+
+**v1.28.2 использует новый project `pulse-saved-pilot-public` и том с ключом
+`saved_pilot_public_v1282_data`.** Прежний `pulse-saved-pilot-demo` и его
+`saved_pilot_pgdata` не используются, не удаляются, пароли старой БД не меняются.
+Новый demo создаёт собственную копию того же закреплённого синтетического пилота.
+Не подставляйте старый том вручную: неподходящие credentials/состояние приводят
+к отказу, а не автоматической смене пароля или очистке БД.
+
+### Необязательная настройка портов и сети
+
+Существующий `.env` не требуется. Значения `SAVED_PILOT_DB_PASSWORD` и
+`SAVED_PILOT_DEMO_PASSWORD` из старого `.env` **игнорируются**: demo использует
+фиксированные публичные значения из Compose. При этом стандартные настройки
+Compose (`COMPOSE_PROJECT_NAME`, `COMPOSE_FILE` и т.п.) и опциональные переменные
+портов по-прежнему действуют. Не используйте имя проекта старого окружения.
+
+Если порты заняты (`port is already allocated` / `address already in use`), задайте
+свободные `SAVED_PILOT_FRONTEND_PORT` и `SAVED_PILOT_PORT` в локальном окружении.
+Например, только после проверки свободных портов в PowerShell:
+
+~~~powershell
+$env:SAVED_PILOT_FRONTEND_PORT = '8086'
+$env:SAVED_PILOT_PORT = '8016'
+docker compose -f compose.saved-pilot-demo.yml up --build -d --wait
+~~~
+
+Теперь приложение на http://localhost:8086, Swagger/readiness на порту 8016.
+Если старый `.env` содержит эти переменные, его значения также меняют порты;
+проверьте их или задайте явные значения в окружении. API через nginx остаётся same-origin.
+
+По умолчанию Docker сам выделяет сеть. `SAVED_PILOT_SUBNET` из старого `.env`
+не влияет на основной Compose. При `address pools exhausted` или конфликте сети
+проверьте `docker network ls`, `docker network inspect <имя>` и маршруты хоста
+(`route print` в Windows). Выберите собственную свободную подсеть и **только тогда**:
+
+~~~powershell
+$env:SAVED_PILOT_SUBNET = '<проверенная-свободная-подсеть-CIDR>'
+docker compose -f compose.saved-pilot-demo.yml -f compose.saved-pilot.network.yml up --build -d --wait
+~~~
+
+Этот override добавляйте ко всем дальнейшим командам данного окружения.
+Не удаляйте чужие сети/тома и не применяйте prune или `down -v`.
+Смена подсети уже созданной сети не является обычным restart; используйте новый
+отдельный project с собственными свободными портами/подсетью либо согласованную
+процедуру остановки только своего окружения с сохранением тома.
+
+При `SAVED_PILOT_BACKEND_DATABASE_CHECK_FAILED` /
+`DATABASE_AUTHENTICATION_FAILED` seed останавливается до импорта. `/ready`
+работающего backend показывает безопасный `diagnostics.database_code`.
+В новом фиксированном режиме изменение старых password-переменных `.env` это
+не исправляет. Проверьте, что запущен именно новый project и не подключён чужой том.
+Для восстановления **старого** окружения v1.28.1 нужны прежняя конфигурация и
+первоначальные пароли; не меняйте пароль существующей БД автоматически.
+При `DATABASE_TABLE_MISSING` / `DATABASE_*_SCHEMA_MISMATCH` проверьте миграции и
+целевую БД, не обходите readiness. [Происхождение ответа](docs/SAVED_LLM_PILOT_DEMO.md).
+
+## О продукте и ранее проверенном техническом demo
 
 «Пульс бизнеса» помогает оценивать влияние новости на выбранную компанию:
 сопоставляет её с контекстом компании и аналитическими материалами, показывает
@@ -17,113 +119,6 @@ nginx E2E — PASS (22 HTTP-проверки); browser smoke — PASS, без co
 Organizer/реальный LLM в этом E2E не проверялся. Сборка выполнена из исходников
 с сохранённым кэшем загрузок; на проверенной машине применён документированный
 network override. Подробности — в [SUBMISSION_CHECK](docs/SUBMISSION_CHECK.md).
-
-## Рекомендуемый запуск для жюри: сохранённый настоящий LLM-пилот
-
-Это содержательный **исторический ответ DeepSeek на полностью синтетических данных**,
-а не новый live-анализ и не fake-ответ. Одна компания, одна новость, один исходный
-ответ и два учебных TXT-источника. Банковских PDF и датасета организаторов здесь нет.
-Финансовая достоверность не подтверждена: **16 UNKNOWN и 4 NEEDS_REVIEW**.
-
-Нужны Git, Docker Desktop (Linux containers), Compose v2, доступ к registries при
-первой сборке. Из checkout `main`:
-
-~~~powershell
-Copy-Item .env.example .env
-~~~
-
-Копируйте шаблон только при первой установке. Если `.env` уже существует,
-сначала сохраните его: не заменяйте рабочие пароли шаблонными значениями.
-
-В `.env` задайте `SAVED_PILOT_DB_PASSWORD` (32–128 hexadecimal символов,
-например `[guid]::NewGuid().ToString('N')`) и `SAVED_PILOT_DEMO_PASSWORD`
-(свой пароль 12–256 символов). Это **две разные настройки**: первая — пароль
-PostgreSQL, вторая — пароль входа пользователя. Оба значения задайте **до первого
-запуска**. Не оставляйте `REPLACE_*`. Не используйте API-ключ вместо пароля.
-API-ключ для saved-pilot не нужен.
-Проверьте, что `SAVED_PILOT_SUBNET` не пересекается с сетями Docker/маршрутами
-хоста; при необходимости укажите свою свободную подсеть. Не удаляйте чужие сети.
-
-**Одна команда сборки, миграций, импорта и запуска:**
-
-~~~powershell
-docker compose -f compose.saved-pilot-demo.yml up --build -d --wait
-~~~
-
-- Приложение: **http://localhost:8082**, Swagger: http://localhost:8010/docs.
-- Логин: **synthetic-pilot-viewer**. Пароль — ваш `SAVED_PILOT_DEMO_PASSWORD`.
-- Войти → выбрать единственную синтетическую компанию → Пульс → Инсайты → карточка.
-- Видны исходный ответ, риски, возможности, рекомендации, два учебных источника,
-  исторический trace и все предупреждения reviewer. Это не подтверждённая
-  финансовая рекомендация. Аккаунт read-only: новые анализы запрещены.
-- Новый LLM-запрос не выполняется; ключи провайдера в этом режиме принудительно пусты.
-
-Отдельные project `pulse-saved-pilot-demo`, БД и том не затрагивают fake submission.
-Seed проверяет закреплённые хеши, пустоту новой БД либо неизменность прежнего импорта.
-Повторный запуск не удваивает записи. Не меняйте пароли после создания тома:
-несовпадение приводит к отказу, а не сбросу данных.
-
-~~~powershell
-docker compose -f compose.saved-pilot-demo.yml logs --tail=80 seed backend frontend
-docker compose -f compose.saved-pilot-demo.yml stop
-~~~
-
-Тома сохраняются. Для повторного старта — та же команда без `--build`.
-При занятых портах измените `SAVED_PILOT_FRONTEND_PORT` / `SAVED_PILOT_PORT`.
-[Подробности и происхождение ответа](docs/SAVED_LLM_PILOT_DEMO.md).
-
-### Проверка запуска и устранение ошибок saved-pilot
-
-~~~powershell
-docker compose -f compose.saved-pilot-demo.yml ps -a
-docker compose -f compose.saved-pilot-demo.yml logs --tail=40 seed backend
-curl.exe http://localhost:8010/ready
-~~~
-
-Успех: postgres/backend healthy, seed Exited(0), frontend Up; `/ready` возвращает
-HTTP 200 и `database=true`. В offline-режиме `rag=false` и `llm_config=false`
-**нормальны**: `diagnostics.required_checks` содержит только `database`.
-Откройте http://localhost:8082, войдите как `synthetic-pilot-viewer` с паролем
-`SAVED_PILOT_DEMO_PASSWORD` и откройте Пульс → Инсайты → единственную карточку.
-
-**Если сеть конфликтует.** Ошибка Docker `Pool overlaps with other one` означает
-пересечение подсети; `address pools ... exhausted` — исчерпание пулов.
-Посмотрите `docker network ls` и `docker network inspect <имя_сети>`, а также
-маршруты хоста (`route print` в Windows). До первого запуска выберите собственную
-непересекающуюся подсеть в `SAVED_PILOT_SUBNET`; не копируйте занятую подсеть и
-не удаляйте чужие сети. Если сеть этого проекта уже создана, смена subnet — не
-обычный restart: сначала требуется согласованное отключение только этого проекта
-с сохранением тома. Не применяйте prune или `down -v`.
-
-**Если порт занят.** Ошибка `port is already allocated` / `address already in use`
-требует свободных `SAVED_PILOT_FRONTEND_PORT` и `SAVED_PILOT_PORT` в `.env`.
-Например, 8086 и 8016 — только если они свободны. После изменения используйте
-эти порты и в адресах браузера/curl. nginx обращается к backend по внутреннему
-адресу; браузерный same-origin API не требует изменения кода.
-
-**Если изменён DB-пароль после создания тома.** `POSTGRES_PASSWORD` применяется
-только при инициализации новой БД. Изменение `.env` не меняет пароль в сохранённой
-БД. В v1.28.1 seed проверяет TCP-подключение до импорта и при несовпадении выдаёт
-`SAVED_PILOT_BACKEND_DATABASE_CHECK_FAILED` /
-`DATABASE_AUTHENTICATION_FAILED`, exit != 0. `/ready` работающего backend тоже
-может показать `diagnostics.database_code=DATABASE_AUTHENTICATION_FAILED`.
-Healthy PostgreSQL означает готовность сервера, а не правильность пароля backend.
-
-Верните **первоначальный** `SAVED_PILOT_DB_PASSWORD` из сохранённого `.env`;
-`SAVED_PILOT_DEMO_PASSWORD` также оставьте первоначальным. Затем:
-
-~~~powershell
-docker compose -f compose.saved-pilot-demo.yml up --no-build --pull never -d --wait
-~~~
-
-Данные и результаты сохраняются. Если исходный пароль потерян, не удаляйте том:
-нужна отдельная процедура восстановления доступа. В качестве независимой новой
-демонстрации можно использовать новый Compose project (`-p <новое-имя>`), новую
-свободную подсеть и порты с отдельным `.env`; это новая БД, не восстановление старой.
-Не публикуйте `.env`, DSN или полные логи с credentials. При других безопасных
-кодах (`DATABASE_TABLE_MISSING`, `DATABASE_*_SCHEMA_MISMATCH`) не обходите `/ready`:
-нужно проверить завершение миграций и правильность целевой БД.
-
 
 ## Отдельный технический режим: fake submission
 

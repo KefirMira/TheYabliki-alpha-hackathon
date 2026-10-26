@@ -1,13 +1,16 @@
-name: pulse-saved-pilot-demo
+# PUBLIC credentials below are intentional, synthetic-demo-only, NOT secrets.
+# Localhost only. Never deploy this environment to the Internet or production.
+# New project/volume namespace preserves pre-v1.28.2 password-protected volumes.
+name: pulse-saved-pilot-public
 services:
   postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: test_saved_pilot_demo
       POSTGRES_USER: pulse_pilot
-      POSTGRES_PASSWORD: ${SAVED_PILOT_DB_PASSWORD:?Set a new local hexadecimal password}
+      POSTGRES_PASSWORD: "0123456789abcdef0123456789abcdef"
     volumes:
-      - saved_pilot_pgdata:/var/lib/postgresql/data
+      - saved_pilot_public_v1282_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
       - ./database/migrations/002_pulse_features.sql:/docker-entrypoint-initdb.d/002.sql:ro
       - ./database/migrations/003_integrity.sql:/docker-entrypoint-initdb.d/003.sql:ro
@@ -27,7 +30,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.saved-pilot
     environment:
-      DATABASE_URL: postgresql+asyncpg://pulse_pilot:${SAVED_PILOT_DB_PASSWORD:?Set a local password}@postgres:5432/test_saved_pilot_demo
+      DATABASE_URL: postgresql+asyncpg://pulse_pilot:0123456789abcdef0123456789abcdef@postgres:5432/test_saved_pilot_demo
       AI_MODE: demo
       SAVED_PILOT_OFFLINE: "1"
       DATASET_AI_TRANSPORT: fake
@@ -57,8 +60,8 @@ services:
     # loopback target guard remains enabled; no host PostgreSQL is reachable here.
     network_mode: service:postgres
     environment:
-      SAVED_PILOT_DEMO_PASSWORD: ${SAVED_PILOT_DEMO_PASSWORD:?Set a local password of at least 12 characters}
-      SAVED_PILOT_DATABASE_URL: postgresql+asyncpg://pulse_pilot:${SAVED_PILOT_DB_PASSWORD:?Set a local password}@127.0.0.1:5432/test_saved_pilot_demo
+      SAVED_PILOT_DEMO_PASSWORD: "PulseDemo2026Viewer"
+      SAVED_PILOT_DATABASE_URL: postgresql+asyncpg://pulse_pilot:0123456789abcdef0123456789abcdef@127.0.0.1:5432/test_saved_pilot_demo
       LLM_API_KEY: ""
       LLM_BASE_URL: ""
       LLM_MODEL: ""
@@ -77,10 +80,4 @@ services:
       backend:
         condition: service_healthy
 volumes:
-  saved_pilot_pgdata:
-
-networks:
-  default:
-    ipam:
-      config:
-        - subnet: ${SAVED_PILOT_SUBNET:-172.30.247.0/24}
+  saved_pilot_public_v1282_data:
