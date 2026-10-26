@@ -30,3 +30,8 @@ def execution_mode() -> str:
 def ai_disabled_reason() -> str | None:
     """Shared mode policy for execution and read-only capability reporting."""
     return "AI_DISABLED_IN_DEMO" if execution_mode() == "demo" else None
+
+
+def saved_pilot_offline() -> bool:
+    """Dedicated offline diagnostics; never enables AI or changes other modes."""
+    return os.environ.get('SAVED_PILOT_OFFLINE') == '1' and execution_mode() == 'demo'

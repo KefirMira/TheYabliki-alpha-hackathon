@@ -1,4 +1,4 @@
-# Пульс бизнеса — версия для сдачи v1.28.0
+# Пульс бизнеса — версия для сдачи v1.28.1
 
 «Пульс бизнеса» помогает оценивать влияние новости на выбранную компанию:
 сопоставляет её с контекстом компании и аналитическими материалами, показывает
@@ -32,9 +32,15 @@ network override. Подробности — в [SUBMISSION_CHECK](docs/SUBMISSI
 Copy-Item .env.example .env
 ~~~
 
+Копируйте шаблон только при первой установке. Если `.env` уже существует,
+сначала сохраните его: не заменяйте рабочие пароли шаблонными значениями.
+
 В `.env` задайте `SAVED_PILOT_DB_PASSWORD` (32–128 hexadecimal символов,
 например `[guid]::NewGuid().ToString('N')`) и `SAVED_PILOT_DEMO_PASSWORD`
-(свой пароль 12–256 символов). Не оставляйте `REPLACE_*`. API-ключ не нужен.
+(свой пароль 12–256 символов). Это **две разные настройки**: первая — пароль
+PostgreSQL, вторая — пароль входа пользователя. Оба значения задайте **до первого
+запуска**. Не оставляйте `REPLACE_*`. Не используйте API-ключ вместо пароля.
+API-ключ для saved-pilot не нужен.
 Проверьте, что `SAVED_PILOT_SUBNET` не пересекается с сетями Docker/маршрутами
 хоста; при необходимости укажите свою свободную подсеть. Не удаляйте чужие сети.
 
@@ -65,6 +71,59 @@ docker compose -f compose.saved-pilot-demo.yml stop
 Тома сохраняются. Для повторного старта — та же команда без `--build`.
 При занятых портах измените `SAVED_PILOT_FRONTEND_PORT` / `SAVED_PILOT_PORT`.
 [Подробности и происхождение ответа](docs/SAVED_LLM_PILOT_DEMO.md).
+
+### Проверка запуска и устранение ошибок saved-pilot
+
+~~~powershell
+docker compose -f compose.saved-pilot-demo.yml ps -a
+docker compose -f compose.saved-pilot-demo.yml logs --tail=40 seed backend
+curl.exe http://localhost:8010/ready
+~~~
+
+Успех: postgres/backend healthy, seed Exited(0), frontend Up; `/ready` возвращает
+HTTP 200 и `database=true`. В offline-режиме `rag=false` и `llm_config=false`
+**нормальны**: `diagnostics.required_checks` содержит только `database`.
+Откройте http://localhost:8082, войдите как `synthetic-pilot-viewer` с паролем
+`SAVED_PILOT_DEMO_PASSWORD` и откройте Пульс → Инсайты → единственную карточку.
+
+**Если сеть конфликтует.** Ошибка Docker `Pool overlaps with other one` означает
+пересечение подсети; `address pools ... exhausted` — исчерпание пулов.
+Посмотрите `docker network ls` и `docker network inspect <имя_сети>`, а также
+маршруты хоста (`route print` в Windows). До первого запуска выберите собственную
+непересекающуюся подсеть в `SAVED_PILOT_SUBNET`; не копируйте занятую подсеть и
+не удаляйте чужие сети. Если сеть этого проекта уже создана, смена subnet — не
+обычный restart: сначала требуется согласованное отключение только этого проекта
+с сохранением тома. Не применяйте prune или `down -v`.
+
+**Если порт занят.** Ошибка `port is already allocated` / `address already in use`
+требует свободных `SAVED_PILOT_FRONTEND_PORT` и `SAVED_PILOT_PORT` в `.env`.
+Например, 8086 и 8016 — только если они свободны. После изменения используйте
+эти порты и в адресах браузера/curl. nginx обращается к backend по внутреннему
+адресу; браузерный same-origin API не требует изменения кода.
+
+**Если изменён DB-пароль после создания тома.** `POSTGRES_PASSWORD` применяется
+только при инициализации новой БД. Изменение `.env` не меняет пароль в сохранённой
+БД. В v1.28.1 seed проверяет TCP-подключение до импорта и при несовпадении выдаёт
+`SAVED_PILOT_BACKEND_DATABASE_CHECK_FAILED` /
+`DATABASE_AUTHENTICATION_FAILED`, exit != 0. `/ready` работающего backend тоже
+может показать `diagnostics.database_code=DATABASE_AUTHENTICATION_FAILED`.
+Healthy PostgreSQL означает готовность сервера, а не правильность пароля backend.
+
+Верните **первоначальный** `SAVED_PILOT_DB_PASSWORD` из сохранённого `.env`;
+`SAVED_PILOT_DEMO_PASSWORD` также оставьте первоначальным. Затем:
+
+~~~powershell
+docker compose -f compose.saved-pilot-demo.yml up --no-build --pull never -d --wait
+~~~
+
+Данные и результаты сохраняются. Если исходный пароль потерян, не удаляйте том:
+нужна отдельная процедура восстановления доступа. В качестве независимой новой
+демонстрации можно использовать новый Compose project (`-p <новое-имя>`), новую
+свободную подсеть и порты с отдельным `.env`; это новая БД, не восстановление старой.
+Не публикуйте `.env`, DSN или полные логи с credentials. При других безопасных
+кодах (`DATABASE_TABLE_MISSING`, `DATABASE_*_SCHEMA_MISMATCH`) не обходите `/ready`:
+нужно проверить завершение миграций и правильность целевой БД.
+
 
 ## Отдельный технический режим: fake submission
 

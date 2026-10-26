@@ -7,6 +7,7 @@ import getpass
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
 from company_import.storage import target_url
+from db.diagnostics import database_error_code
 from repositories.analysis_run_repository import AnalysisRunRepository
 from repositories.company_analysis_repository import CompanyAnalysisRepository
 from repositories.evidence_repository import EvidenceRepository
@@ -156,6 +158,39 @@ async def import_pilot(value, expected_database, password=None, *, apply=False):
         await engine.dispose()
 
 
+class BackendDatabaseCheckFailed(Exception):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+async def verify_backend_connection(value, expected_database):
+    """Read-only TCP probe of Docker service, using the SAME credentials as seed/backend.
+
+    Writes still use the existing guarded loopback importer. Docker's loopback
+    trust must not hide a wrong password on an already initialized volume.
+    """
+    url = target_url(value, expected_database)
+    if not re.fullmatch(r'[a-fA-F0-9]{32,128}', url.password or ''):
+        raise BackendDatabaseCheckFailed('DATABASE_PASSWORD_FORMAT_INVALID')
+    engine = create_async_engine(url.set(host='postgres'), poolclass=NullPool,
+        hide_parameters=True, connect_args={'timeout': 5, 'command_timeout': 5})
+    try:
+        async with engine.begin() as connection:
+            await connection.execute(text('SET TRANSACTION READ ONLY'))
+            result = (await connection.execute(text("""SELECT current_database() AS name,
+                shobj_description(oid, 'pg_database') AS marker
+                FROM pg_database WHERE datname=current_database()"""))).mappings().one()
+            if result['name'] != expected_database or result['marker'] != MARKER:
+                raise BackendDatabaseCheckFailed('DATABASE_ISOLATION_MARKER_MISMATCH')
+    except BackendDatabaseCheckFailed:
+        raise
+    except Exception as error:
+        raise BackendDatabaseCheckFailed(database_error_code(error)) from None
+    finally:
+        await engine.dispose()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--expected-database', required=True)
@@ -163,6 +198,8 @@ def main(argv=None):
     parser.add_argument('--confirm-isolated', action='store_true')
     parser.add_argument('--password-env', action='store_true',
                         help='Read SAVED_PILOT_DEMO_PASSWORD for isolated non-interactive seed')
+    parser.add_argument('--verify-backend-connection', action='store_true',
+                        help='Verify Docker TCP authentication before importing')
     args = parser.parse_args(argv)
     try:
         if args.apply and not args.confirm_isolated:
@@ -177,10 +214,17 @@ def main(argv=None):
                 password = getpass.getpass(f'{LOGIN} password (12–256 characters): ')
                 if password != getpass.getpass('Repeat password: '):
                     raise ValueError('PASSWORD_CONFIRMATION_MISMATCH')
+        if args.verify_backend_connection:
+            asyncio.run(verify_backend_connection(os.environ.get('SAVED_PILOT_DATABASE_URL', ''),
+                                                  args.expected_database))
         result = asyncio.run(import_pilot(os.environ.get('SAVED_PILOT_DATABASE_URL', ''),
                             args.expected_database, password, apply=args.apply))
         print(json.dumps(result))
         return 0
+    except BackendDatabaseCheckFailed as error:
+        print(json.dumps({'code': 'SAVED_PILOT_BACKEND_DATABASE_CHECK_FAILED',
+                          'reason': error.code}))
+        return 1
     except Exception:
         # No exception/DSN/SQL/body/password serialization.
         print(json.dumps({'code': 'SAVED_PILOT_IMPORT_FAILED_VERIFY_TARGET_AND_ARTIFACT'}))

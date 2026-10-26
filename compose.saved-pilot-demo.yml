@@ -29,6 +29,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://pulse_pilot:${SAVED_PILOT_DB_PASSWORD:?Set a local password}@postgres:5432/test_saved_pilot_demo
       AI_MODE: demo
+      SAVED_PILOT_OFFLINE: "1"
       DATASET_AI_TRANSPORT: fake
       DATASET_AI_MANIFEST: ""
       DATASET_AI_MANIFEST_SHA256: ""
@@ -61,7 +62,7 @@ services:
       LLM_API_KEY: ""
       LLM_BASE_URL: ""
       LLM_MODEL: ""
-    command: [python, -B, -m, saved_pilot_demo, --expected-database, test_saved_pilot_demo, --apply, --confirm-isolated, --password-env]
+    command: [python, -B, -m, saved_pilot_demo, --expected-database, test_saved_pilot_demo, --apply, --confirm-isolated, --password-env, --verify-backend-connection]
     restart: "no"
     depends_on:
       postgres:

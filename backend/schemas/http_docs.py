@@ -38,9 +38,16 @@ class ReadinessChecks(BaseModel):
     database: bool
 
 
+class ReadinessDiagnostics(BaseModel):
+    mode: Literal["saved-pilot-offline"]
+    required_checks: list[Literal["database"]]
+    database_code: str
+
+
 class ReadinessResponse(BaseModel):
     status: Literal["ready", "not_ready"]
     checks: ReadinessChecks
+    diagnostics: ReadinessDiagnostics | None = None
 
 
 class RAGSource(BaseModel):
