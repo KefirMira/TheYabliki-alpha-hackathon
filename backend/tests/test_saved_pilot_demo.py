@@ -55,3 +55,42 @@ def test_docker_packages_only_explicit_pilot_fixture():
         assert '!'+name in allowed
     assert '!data/' not in allowed
     assert '!fixtures/*' not in allowed
+
+
+def test_noninteractive_seed_requires_valid_local_password(monkeypatch, capsys):
+    monkeypatch.setenv('SAVED_PILOT_DEMO_PASSWORD', 'REPLACE_LOCAL_PASSWORD')
+    with patch('saved_pilot_demo.import_pilot') as dispatch:
+        assert main(['--expected-database','test_saved_pilot_demo','--apply',
+                     '--confirm-isolated','--password-env']) == 1
+        dispatch.assert_not_called()
+    assert 'REPLACE_LOCAL_PASSWORD' not in capsys.readouterr().out
+
+
+def test_noninteractive_seed_uses_existing_guarded_import(monkeypatch, capsys):
+    from unittest.mock import AsyncMock
+    password = 'Only-synthetic-test-password'
+    monkeypatch.setenv('SAVED_PILOT_DEMO_PASSWORD', password)
+    monkeypatch.setenv('SAVED_PILOT_DATABASE_URL', 'synthetic-target')
+    with patch('saved_pilot_demo.import_pilot', new_callable=AsyncMock,
+               return_value={'state':'UNCHANGED','new_llm_requests':0}) as dispatch:
+        assert main(['--expected-database','test_saved_pilot_demo','--apply',
+                     '--confirm-isolated','--password-env']) == 0
+        dispatch.assert_awaited_once_with('synthetic-target', 'test_saved_pilot_demo',
+                                         password, apply=True)
+    assert password not in capsys.readouterr().out
+
+
+def test_public_saved_pilot_packaging_has_no_private_inputs():
+    root = ARTIFACT.parents[2]
+    docker = (root/'backend/Dockerfile.saved-pilot').read_text()
+    compose = (root/'compose.saved-pilot-demo.yml').read_text()
+    assert 'COPY fixtures/gateway_macro_v1.json fixtures/saved_llm_pilot_v1.json' in docker
+    assert 'requirements-runtime.txt' in docker
+    assert 'COPY data' not in docker
+    assert '--password-env' in compose and '--confirm-isolated' in compose
+    assert 'service_completed_successfully' in compose
+    assert 'frontend:' in compose and '8082' in compose
+    assert 'profiles: [seed]' not in compose
+    assert 'LLM_API_KEY: ""' in compose
+    assert 'DATASET_AI_TRANSPORT: fake' in compose
+    assert 'submission_pgdata' not in compose

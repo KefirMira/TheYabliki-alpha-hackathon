@@ -34,3 +34,5 @@
 !fixtures/submission_release.json
 !fixtures/submission_rag/
 !fixtures/submission_rag/**
+
+!Dockerfile.saved-pilot

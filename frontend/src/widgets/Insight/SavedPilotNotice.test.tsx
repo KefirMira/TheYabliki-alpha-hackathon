@@ -71,6 +71,8 @@ describe('saved synthetic pilot', () => {
     expect(
       screen.getByText(/Повторного запроса к модели не было/)
     ).toBeInTheDocument()
+    expect(screen.getByText(/Сохранённый настоящий ответ/)).toBeInTheDocument()
+    expect(screen.getByText(/Источники — учебные TXT, не аналитика Альфа-Банка/)).toBeInTheDocument()
     expect(screen.getByText(/Сохранённый журнал пилота/)).toBeInTheDocument()
     expect(detail.financialReview?.findings).toHaveLength(20)
     expect(screen.getByText(/Исторический trace пилота от/)).toBeInTheDocument()

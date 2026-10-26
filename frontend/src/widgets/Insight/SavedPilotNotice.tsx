@@ -7,9 +7,10 @@ export const SavedPilotNotice = ({ detail }: { detail: IInsightDetail }) => {
     <Card>
       <h2 className="text-lg font-semibold">Синтетический пример</h2>
       <p>
-        Сохранённый ответ {pilot.model} от {pilot.pilotDate}. Повторного запроса
+        Сохранённый настоящий ответ {pilot.model} от {pilot.pilotDate}. Повторного запроса
         к модели не было.
       </p>
+      <p>Источники — учебные TXT, не аналитика Альфа-Банка.</p>
       <p className="font-semibold">Финансовая достоверность не подтверждена</p>
       <p>
         JSON и происхождение фрагментов проверены технически; это не

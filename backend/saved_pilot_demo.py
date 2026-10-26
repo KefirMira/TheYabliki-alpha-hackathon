@@ -161,15 +161,22 @@ def main(argv=None):
     parser.add_argument('--expected-database', required=True)
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--confirm-isolated', action='store_true')
+    parser.add_argument('--password-env', action='store_true',
+                        help='Read SAVED_PILOT_DEMO_PASSWORD for isolated non-interactive seed')
     args = parser.parse_args(argv)
     try:
         if args.apply and not args.confirm_isolated:
             raise ValueError('CONFIRM_ISOLATED_REQUIRED')
         password = None
         if args.apply:
-            password = getpass.getpass(f'{LOGIN} password (12–256 characters): ')
-            if password != getpass.getpass('Repeat password: '):
-                raise ValueError('PASSWORD_CONFIRMATION_MISMATCH')
+            if args.password_env:
+                password = os.environ.get('SAVED_PILOT_DEMO_PASSWORD', '')
+                if not 12 <= len(password) <= 256 or password.startswith('REPLACE_'):
+                    raise ValueError('PILOT_PASSWORD_REQUIRED')
+            else:
+                password = getpass.getpass(f'{LOGIN} password (12–256 characters): ')
+                if password != getpass.getpass('Repeat password: '):
+                    raise ValueError('PASSWORD_CONFIRMATION_MISMATCH')
         result = asyncio.run(import_pilot(os.environ.get('SAVED_PILOT_DATABASE_URL', ''),
                             args.expected_database, password, apply=args.apply))
         print(json.dumps(result))

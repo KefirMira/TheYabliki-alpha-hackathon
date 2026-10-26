@@ -25,19 +25,25 @@ services:
     image: pulse-saved-pilot-demo:local
     build:
       context: ./backend
+      dockerfile: Dockerfile.saved-pilot
     environment:
       DATABASE_URL: postgresql+asyncpg://pulse_pilot:${SAVED_PILOT_DB_PASSWORD:?Set a local password}@postgres:5432/test_saved_pilot_demo
       AI_MODE: demo
+      DATASET_AI_TRANSPORT: fake
+      DATASET_AI_MANIFEST: ""
+      DATASET_AI_MANIFEST_SHA256: ""
       LLM_API_KEY: ""
       LLM_BASE_URL: ""
       LLM_MODEL: ""
-      CORS_ORIGINS: http://localhost:5174
+      CORS_ORIGINS: http://localhost:8082,http://127.0.0.1:8082
       RAG_KNOWLEDGE_BASE_DIR: /tmp/empty-synthetic-rag
     ports:
       - "127.0.0.1:${SAVED_PILOT_PORT:-8010}:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      seed:
+        condition: service_completed_successfully
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=8)"]
       interval: 3s
@@ -46,20 +52,34 @@ services:
       start_period: 10s
   seed:
     image: pulse-saved-pilot-demo:local
-    profiles: [seed]
     # Seed shares only this project's PostgreSQL network namespace. The strict
     # loopback target guard remains enabled; no host PostgreSQL is reachable here.
     network_mode: service:postgres
     environment:
+      SAVED_PILOT_DEMO_PASSWORD: ${SAVED_PILOT_DEMO_PASSWORD:?Set a local password of at least 12 characters}
       SAVED_PILOT_DATABASE_URL: postgresql+asyncpg://pulse_pilot:${SAVED_PILOT_DB_PASSWORD:?Set a local password}@127.0.0.1:5432/test_saved_pilot_demo
       LLM_API_KEY: ""
       LLM_BASE_URL: ""
       LLM_MODEL: ""
-    command: [python, -B, -m, saved_pilot_demo, --expected-database, test_saved_pilot_demo]
-    stdin_open: true
-    tty: true
+    command: [python, -B, -m, saved_pilot_demo, --expected-database, test_saved_pilot_demo, --apply, --confirm-isolated, --password-env]
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
+  frontend:
+    image: pulse-saved-pilot-frontend:local
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${SAVED_PILOT_FRONTEND_PORT:-8082}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 volumes:
   saved_pilot_pgdata:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${SAVED_PILOT_SUBNET:-172.30.247.0/24}

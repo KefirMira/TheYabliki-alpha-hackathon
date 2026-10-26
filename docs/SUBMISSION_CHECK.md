@@ -1,3 +1,34 @@
+# Публичный saved-pilot — v1.28.0
+
+Проверен отдельный запуск из clean-context: отслеживаемые файлы HEAD плюс только
+перечисленные изменения этой задачи; ignored backend/data, .env и приватные
+артефакты не копировались. Исключение — собственный .env, созданный по инструкции.
+Сборка использовала cache зависимостей, не prebuilt приложение.
+
+- Backend Dockerfile.saved-pilot и frontend Dockerfile: BUILD PASS.
+- TypeScript + Vite production build: PASS.
+- Compose: отдельный project pulse-public-pilot-check-20261026, новый том/БД,
+  postgres/backend/frontend healthy, seed Exited(0).
+- nginx: 17 HTTP-проверок, login/me/profile/feed/card, 401/403/logout204.
+- Read-only: запрещены POST news и оба маршрута анализа; чужая компания403.
+- Ответ модели, 2 evidence, все 20 findings и trace совпадают с pinned fixture.
+- Повтор seed: UNCHANGED, без новых записей и SDK-запросов.
+- PostgreSQL: rollback при втором evidence и trace, 8 concurrent imports
+  (1 CREATED, 7 UNCHANGED), отказ для неверного marker/пароля/непустой БД.
+- Browser: вход → единственная компания → лента → карточка; видны синтетическое
+  происхождение, сохранённый настоящий ответ, учебные TXT и financial warnings.
+  Console errors/warnings отсутствуют.
+- Reviewer: 16 UNKNOWN, 4 NEEDS_REVIEW. Достоверность не подтверждена.
+- Новых LLM-запросов: 0. Действующие 8080/8081 не изменялись.
+
+Для этой машины .env задаёт проверенную свободную подсеть 172.16.253.0/24.
+Шаблонную подсеть нельзя копировать без проверки пересечений. Приватный .env,
+контекст сборки, HTTP-результаты остаются в ignored backend/data/public_pilot_check.
+Ни CSV, ни банковские PDF для этого запуска не нужны.
+
+Ниже сохранён прежний отчёт fake submission v1.27.2. Это отдельная проверка,
+не оценка финансовой достоверности saved-pilot.
+
 # Проверка сдаваемого окружения — 26 октября 2026
 
 Проверенная версия: v1.27.1, коммит
