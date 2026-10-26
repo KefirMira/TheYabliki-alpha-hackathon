@@ -1,4 +1,4 @@
-# Пульс бизнеса — версия для сдачи v1.31.2
+# Пульс бизнеса — версия для сдачи v1.31.3
 
 ## Рекомендуемый запуск для жюри — одна команда, без .env
 
@@ -144,19 +144,44 @@ docker compose -f compose.saved-pilot-demo.yml -f compose.saved-pilot.network.ym
 ### Запуск live-режима
 
 Нужны Git, Docker Desktop с Linux containers, Docker Compose v2, интернет для первой
-сборки и **собственный действующий API-ключ шлюза организаторов**. Офлайн-запуск выше
-по-прежнему не требует ключа или `.env`. Для отдельного live-режима (PowerShell):
+сборки и действующий API-ключ указанного шлюза. Для получения или активации ключа
+сообщите организаторам: **команда The Yabliki, проект «Пульс бизнеса», трек «Новостная аналитика»**.
+Офлайн-демо с сохранёнными анализами по-прежнему работает без API-ключа и `.env`.
 
-```powershell
-git clone https://github.com/KefirMira/TheYabliki-alpha-hackathon.git
-cd TheYabliki-alpha-hackathon
-Copy-Item .env.example .env
-```
+1. Клонируйте репозиторий и перейдите в корневую папку проекта:
 
-В редакторе заполните **`LLM_API_KEY` в локальном `.env`**. Остальные live-настройки
-уже заданы: `LLM_BASE_URL=https://changellenge.up.railway.app/v1`,
-`LLM_MODEL=deepseek/deepseek-v4.1-flash`, `LIVE_SYNTHETIC_ANALYSIS_ENABLED=true`,
-`AI_MODE=full`, `SAVED_PILOT_OFFLINE=0`, `LIVE_SYNTHETIC_MAX_REQUESTS=5`.
+   ```shell
+   git clone https://github.com/KefirMira/TheYabliki-alpha-hackathon.git
+   cd TheYabliki-alpha-hackathon
+   ```
+
+2. Файл **`.env` намеренно отсутствует в GitHub**, поскольку содержит секретный
+   API-ключ. Создайте его из `.env.example` **в корне проекта**, не в `frontend` или `backend`.
+
+   Windows PowerShell:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+   macOS/Linux:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Откройте созданный `.env` в текстовом редакторе и замените значение строки:
+
+   ```ini
+   LLM_API_KEY=ВАШ_API_КЛЮЧ
+   ```
+
+   `ВАШ_API_КЛЮЧ` — обозначение для замены, не рабочий ключ. Впишите выданное вам
+   значение, сохраните файл и никому его не отправляйте. Остальные параметры оставьте
+   из `.env.example`: `LLM_BASE_URL=https://changellenge.up.railway.app/v1`,
+   `LLM_MODEL=deepseek/deepseek-v4.1-flash`, `LIVE_SYNTHETIC_ANALYSIS_ENABLED=true`,
+   `AI_MODE=full`, `SAVED_PILOT_OFFLINE=0`, `LIVE_SYNTHETIC_MAX_REQUESTS=5`.
+
 Поля `SUBMISSION_*` не используются этим Compose. Не коммитьте `.env` и не вводите
 ключ во frontend. После заполнения ключа запуск одной командой:
 
@@ -170,7 +195,10 @@ docker compose -f compose.live-synthetic.yml up --build -d --wait
   синтетических компаний; повторный вход не нужен.
 - Пульс → Инсайты → **«Проанализировать новость»**. Введите заголовок и текст,
   необязательный URL; подтвердите право передачи текста и нажмите **«Проанализировать»**.
-  Не вводите конфиденциальные данные. Открытие страницы само не вызывает LLM.
+  Не вводите конфиденциальные данные. Можно скопировать заголовок и текст из
+  [тестовых новостей](docs/JURY_TEST_NEWS.md), выбрав рекомендованную там компанию.
+  Открытие страницы само не вызывает LLM. Каждый отправленный запрос расходует лимит
+  API-ключа; live-результат исчезнет после обновления страницы.
 - Ожидаются вывод, риски, возможности, рекомендации, usage, SHA-256 и reviewer.
   Внешние источники не предоставлены — это явно указано, ссылки не выдумываются.
 
