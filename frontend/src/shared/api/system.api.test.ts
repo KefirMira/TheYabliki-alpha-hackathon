@@ -62,3 +62,21 @@ describe('checkReadiness', () => {
     await expect(checkReadiness()).resolves.toBe(SERVER_UNREACHABLE_MESSAGE)
   })
 })
+
+
+describe('accurate partial readiness banner', () => {
+  it('HTTP503 with DB ready and RAG absent never reports DB failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({status:'not_ready',checks:{database:true,rag:false,llm_config:true}}),{status:503})))
+    const message=await checkReadiness()
+    expect(message).toContain('База данных доступна')
+    expect(message).toContain('RAG недоступен')
+    expect(message).not.toContain('база данных не готова')
+  })
+  it('LLM config failure is distinct from DB failure', () => {
+    expect(readinessProblem({status:'not_ready',checks:{database:true,rag:true,llm_config:false}})).toContain('LLM не настроена')
+  })
+  it('unknown503 does not invent a database outage or display arbitrary body', async () => {
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({private_error:'must not display'}),{status:503})))
+    expect(await checkReadiness()).toBe('Сервис временно недоступен: причина не установлена. Попробуйте позже')
+  })
+})

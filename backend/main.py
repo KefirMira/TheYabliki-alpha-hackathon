@@ -23,6 +23,7 @@ from schemas.http_docs import HealthResponse, RAGResponse, LegacyError, APIError
 from api.auth import router as auth_router, legacy_denied, AUTH_ERRORS
 from api.capabilities import router as capabilities_router
 from api.dataset_analyses import router as dataset_analyses_router
+from api.live_synthetic import router as live_synthetic_router
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -49,6 +50,7 @@ app.include_router(news_router)
 app.include_router(auth_router)
 app.include_router(capabilities_router)
 app.include_router(dataset_analyses_router)
+app.include_router(live_synthetic_router)
 
 
 @app.exception_handler(RequestValidationError)

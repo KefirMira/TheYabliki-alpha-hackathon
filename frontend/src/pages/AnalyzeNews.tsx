@@ -1,4 +1,7 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { apiRequest } from '@/shared/api/request'
+import { isSavedPilotCompany } from '@/shared/constants/savedPilot'
+import type { ICreatedAnalysis } from '@/store/models/IInsight'
 import { ArrowRight, Check, CircleAlert, Info, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -78,6 +81,23 @@ const AnalyzeNews = () => {
   const run = useAppSelector((state) =>
     companyId ? state.analysis.byCompany[companyId] : undefined
   )
+  const actorId = useAppSelector((state) => state.auth.userId)
+  const [liveStatus, setLiveStatus] = useState<{ company: string; actor: string | null; enabled: boolean } | null>(null)
+  const [manual, setManual] = useState<{ company: string; actor: string | null; loading: boolean; error: string; result?: { analysis: ICreatedAnalysis['analysis']; usage: Record<string, number>; model: string; finish_reason: string; response_sha256: string; financial_review?: { status: string; findings: { disposition: string }[] } } } | null>(null)
+  const busy = useRef(false)
+  const [manualConsent, setManualConsent] = useState(false)
+  useEffect(() => {
+    let stale = false
+    setManualConsent(false)
+    if (companyId && isSavedPilotCompany(companyId)) {
+      apiRequest<{ enabled: boolean }>(`/api/companies/${encodeURIComponent(companyId)}/live-synthetic/status`, { method: 'GET' }, 'Live-режим недоступен')
+        .then((v) => { if (!stale) setLiveStatus({ company: companyId, actor: actorId, enabled: v.enabled }) })
+        .catch(() => { if (!stale) setLiveStatus(null) })
+    }
+    return () => { stale = true }
+  }, [companyId, actorId])
+  const live = liveStatus?.company === companyId && liveStatus?.actor === actorId && liveStatus?.enabled
+  const visibleManual = manual?.company === companyId && manual?.actor === actorId ? manual : null
   const { ai } = useReadiness()
   const capability = useCompanyCapabilities(companyId)
   const aiOff = ai === 'demo' && !capability.dataset
@@ -92,7 +112,7 @@ const AnalyzeNews = () => {
     company: string
     id: number
   } | null>(null)
-  const analysisBlocked = aiOff || capability.blocked
+  const analysisBlocked = !live && (aiOff || capability.blocked)
   const [form, setForm] = useState<NewsFormValues>(EMPTY_FORM)
   const [tried, setTried] = useState(false)
   // Дата и время публикации — как напечатаны, «ДД.ММ.ГГГГ» и «ЧЧ:ММ».
@@ -121,16 +141,16 @@ const AnalyzeNews = () => {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  const running = run?.status === 'running'
+  const running = run?.status === 'running' || manual?.loading === true
   const error = tried ? formError() : null
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (
       running ||
       !companyId ||
       analysisBlocked ||
-      (capability.dataset && !transferConfirmed)
+      (!live && capability.dataset && !transferConfirmed)
     )
       return
     if (formError()) {
@@ -138,6 +158,22 @@ const AnalyzeNews = () => {
       return
     }
     setTried(false)
+    if (live) {
+      if (!manualConsent || busy.current) return
+      busy.current = true
+      const company = companyId
+      setManual({ company, actor: actorId, loading: true, error: '' })
+      try {
+        const result = await apiRequest<{ analysis: ICreatedAnalysis['analysis']; usage: Record<string, number>; model: string; finish_reason: string; response_sha256: string; financial_review?: { status: string; findings: { disposition: string }[] } }>(
+          `/api/companies/${encodeURIComponent(company)}/live-synthetic/analyses`,
+          { method: 'POST', body: JSON.stringify({ request_id: crypto.randomUUID(), title: form.title.trim(), text: form.content, url: form.url.trim() || null, external_transfer_confirmed: true }) },
+          'Live-анализ не завершён. Автоматического повтора нет.', 125000)
+        setManual({ company, actor: actorId, loading: false, error: '', result })
+      } catch (e) {
+        setManual({ company, actor: actorId, loading: false, error: e instanceof Error ? e.message : 'Анализ не подтверждён. Не повторяйте неизвестный исход автоматически.' })
+      } finally { busy.current = false }
+      return
+    }
     const newsKey = newsKeyOf(news)
     const title = form.title.trim()
     // Та же новость уже сохранена (например, упал анализ) — второй раз в
@@ -177,6 +213,7 @@ const AnalyzeNews = () => {
 
   const handleClear = () => {
     if (running) return
+    setManual(null)
     setForm(EMPTY_FORM)
     setSelected(null)
     setTransferFor(null)
@@ -193,7 +230,12 @@ const AnalyzeNews = () => {
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <Card className="gap-5 p-5 md:p-7">
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {capability.dataset && (
+            {live && <div className="rounded-xl border p-4 text-sm">
+              <strong>Live-анализ синтетической компании через DeepSeek</strong>
+              <p>Только закреплённый синтетический профиль. Новость — непроверенный текст пользователя. URL не скачивается. Источники/RAG не подключаются. Результат не сохраняется в БД. Один запрос, без повторов; финансовая достоверность неизвестна.</p>
+              <label><input type="checkbox" checked={manualConsent} onChange={(e) => setManualConsent(e.target.checked)} /> Подтверждаю право передать текст и ссылку новости API организаторов; конфиденциальных данных в них нет.</label>
+            </div>}
+            {!live && capability.dataset && (
               <div className="rounded-xl border p-4 text-sm">
                 <strong>
                   {capability.datasetTransport === 'fake'
@@ -357,8 +399,8 @@ const AnalyzeNews = () => {
               </p>
             )}
 
-            {aiOff && <AiDemoNotice />}
-            {!aiOff && capability.blocked && (
+            {aiOff && !live && <AiDemoNotice />}
+            {!live && !aiOff && capability.blocked && (
               <p role="status" className="text-sm text-ink-3">
                 Анализ недоступен: нет подтверждённого разрешения на выполнение
                 или передачу контекста компании. Готовые инсайты доступны в
@@ -369,7 +411,7 @@ const AnalyzeNews = () => {
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Button
                 type="submit"
-                disabled={running || !companyId || analysisBlocked}
+                disabled={running || !companyId || analysisBlocked || Boolean(live && !manualConsent)}
                 className="h-auto px-[18px] py-3 text-[15px]"
               >
                 {running ? 'Анализируем…' : 'Проанализировать'}
@@ -391,7 +433,18 @@ const AnalyzeNews = () => {
         </Card>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {!run && (
+          {visibleManual?.loading && <Card aria-live="polite"><Loader2 className="animate-spin" />Один запрос к DeepSeek выполняется…</Card>}
+          {visibleManual?.error && <FeedMessage error title="Live-анализ не подтверждён" text={visibleManual.error} />}
+          {visibleManual?.result && <Card aria-live="polite">
+            <h2 className="font-semibold">Результат DeepSeek — не сохранён в БД</h2>
+            <p>{visibleManual.result.analysis.summary}</p>
+            {([['Риски',visibleManual.result.analysis.risks],['Возможности',visibleManual.result.analysis.opportunities],['Рекомендации',visibleManual.result.analysis.recommendations]] as const).map(([heading,points]) => <section key={heading}><h3 className="font-semibold">{heading}</h3><ul className="list-disc pl-5">{points.map((point,i) => <li key={i}>{point}</li>)}</ul></section>)}
+            <p>Внешние источники не предоставлены. URL — только ссылка пользователя. Финансовая достоверность не подтверждена.</p>
+            <p>Модель: {visibleManual.result.model}; finish_reason: {visibleManual.result.finish_reason}; токенов: {visibleManual.result.usage.total_tokens}.</p>
+            <p>Reviewer: {visibleManual.result.financial_review?.status ?? 'UNKNOWN'}. UNKNOWN: {visibleManual.result.financial_review?.findings.filter((f) => f.disposition === 'UNKNOWN').length ?? 0}; NEEDS_REVIEW: {visibleManual.result.financial_review?.findings.filter((f) => f.disposition === 'NEEDS_REVIEW').length ?? 0}. Требуется экспертная оценка.</p>
+            <p className="break-all">SHA-256 ответа: {visibleManual.result.response_sha256}</p>
+          </Card>}
+          {!run && !live && (
             <Card className="gap-3.5">
               <h2 className="text-[17px] font-semibold leading-6">
                 Как это работает
@@ -449,7 +502,7 @@ const AnalyzeNews = () => {
             />
           )}
 
-          {run?.status === 'done' && (
+          {run?.status === 'done' && !live && (
             <Card className="gap-3.5" aria-live="polite">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-tone-opp-fg text-white">
@@ -469,6 +522,27 @@ const AnalyzeNews = () => {
                   </span>
                 )}
               </div>
+              {([
+                ['Риски', run.result.analysis.risks ?? []],
+                ['Возможности', run.result.analysis.opportunities ?? []],
+                ['Рекомендации', run.result.analysis.recommendations ?? []],
+              ] as const).map(([heading, points]) => (
+                <section key={heading} className="flex flex-col gap-2">
+                  <h3 className="font-semibold">{heading}</h3>
+                  {points.length > 0
+                    ? <ul className="list-disc space-y-2 pl-5 text-sm">{points.map((point, i) => <li key={i}>{point}</li>)}</ul>
+                    : <p className="text-sm text-ink-3">Не указаны в ответе модели.</p>}
+                </section>
+              ))}
+              <section className="flex flex-col gap-2">
+                <h3 className="font-semibold">Источники</h3>
+                {(run.result.analysis.sources ?? []).length > 0
+                  ? <ul className="list-disc space-y-2 pl-5 text-sm">{(run.result.analysis.sources ?? []).map((source, i) => (
+                    <li key={i}>{source.document ?? `Источник ${source.id}`}{source.page ? ` · стр. ${source.page}` : ''}</li>
+                  ))}</ul>
+                  : <p className="text-sm text-ink-3">Подтверждающие источники в ответе не предоставлены.</p>}
+              </section>
+              <p className="text-sm text-ink-3">Риски и рекомендации — выводы модели, не подтверждённые финансовые факты. Evidence, trace и замечания reviewer доступны в исходном инсайте.</p>
               {run.duplicate && (
                 <div className="flex gap-2.5 text-sm leading-5 text-ink-2">
                   <Info className="mt-0.5 h-4 w-4 shrink-0" />

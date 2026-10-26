@@ -8,7 +8,7 @@ export interface IReadiness {
 
 const READY_TIMEOUT_MS = 10000
 
-/** Готовность бэкенда как есть; 503 (база не готова) — ApiError. */
+/** Готовность как есть; 503 сохраняет checks в ApiError без изменения /ready. */
 export const fetchReadiness = () =>
   apiRequest<IReadiness>(
     '/ready',
@@ -54,7 +54,7 @@ export const checkReadiness = async (): Promise<string | null> => {
     return readinessProblem(await fetchReadiness())
   } catch (error) {
     if (error instanceof ApiError && error.status === 503) {
-      return 'Сервис временно недоступен: база данных не готова. Попробуйте позже'
+      return error.readiness ? readinessProblem(error.readiness) : 'Сервис временно недоступен: причина не установлена. Попробуйте позже'
     }
     // 502/504 — прокси перед бэкендом, когда тот выключен или завис.
     if (error instanceof ApiError && [502, 504].includes(error.status)) {
@@ -64,7 +64,11 @@ export const checkReadiness = async (): Promise<string | null> => {
   }
 }
 
-export const readinessProblem = (result: IReadiness): string | null =>
-  result.status === 'ready' && result.checks.database
-    ? null
-    : 'Сервис временно недоступен: база данных не готова. Попробуйте позже'
+export const readinessProblem = (result: IReadiness): string | null => {
+  if (!result.checks.database) return 'Сервис временно недоступен: база данных не готова. Попробуйте позже'
+  if (result.status === 'ready') return null // Offline demo intentionally needs only DB.
+  const missing = [!result.checks.rag && 'RAG недоступен', !result.checks.llm_config && 'LLM не настроена'].filter(Boolean)
+  return missing.length > 0
+    ? `База данных доступна. ${missing.join('; ')}. Возможности анализа ограничены.`
+    : 'База данных доступна. Причина неготовности сервиса не установлена.'
+}

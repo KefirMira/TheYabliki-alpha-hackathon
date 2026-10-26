@@ -188,3 +188,33 @@ it('dataset требует подтверждения и выбирает отд
   })
   expect(analyzeSavedNews).toHaveBeenCalledWith('DEMO-001', 42, true)
 })
+
+
+it('explicit synthetic live sends one request only after consent, without DB ingest', async () => {
+  const request = await import('@/shared/api/request')
+  let finish!: (value: unknown) => void
+  const spy = vi.spyOn(request, 'apiRequest').mockImplementation((url) => {
+    if (String(url).endsWith('/live-synthetic/status')) return Promise.resolve({ enabled: true }) as never
+    return new Promise((resolve) => { finish = resolve }) as never
+  })
+  vi.mocked(ingestNews).mockClear()
+  vi.mocked(analyzeSavedNews).mockClear()
+  vi.mocked(useCompanyCapabilities).mockReturnValue({ blocked: true, state: 'BLOCKED', reasons: [] })
+  const store=makeTestStore()
+  store.dispatch(login({user_id:'synthetic-user',login:'synthetic-pilot-viewer',companies:[{source_id:'SYNTH-COLLECTION-METAL',name:null,can_analyze:false}]}))
+  store.dispatch(setCurrentCompany('SYNTH-COLLECTION-METAL'))
+  renderWithStore(<AnalyzeNews />, { store })
+  await screen.findByText('Live-анализ синтетической компании через DeepSeek')
+  expect(spy.mock.calls.filter(([url]) => String(url).endsWith('/live-synthetic/analyses'))).toHaveLength(0)
+  expect(screen.getByRole('button',{name:'Проанализировать'})).toBeDisabled()
+  fireEvent.click(screen.getByRole('checkbox'))
+  await act(async () => { fillAndSubmit() })
+  expect(screen.getByRole('button',{name:'Анализируем…'})).toBeDisabled()
+  expect(spy.mock.calls.filter(([url]) => String(url).endsWith('/live-synthetic/analyses'))).toHaveLength(1)
+  expect(ingestNews).not.toHaveBeenCalled()
+  expect(analyzeSavedNews).not.toHaveBeenCalled()
+  await act(async () => finish({ analysis:{summary:'Synthetic live summary',risks:['Risk'],opportunities:['Opportunity'],recommendations:['Action'],sources:[]}, usage:{total_tokens:123},model:'deepseek/deepseek-v4.1-flash',finish_reason:'stop',response_sha256:'a'.repeat(64) }))
+  expect(await screen.findByText('Результат DeepSeek — не сохранён в БД')).toBeInTheDocument()
+  expect(screen.getByText('Synthetic live summary')).toBeInTheDocument()
+  spy.mockRestore()
+})

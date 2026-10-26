@@ -22,6 +22,7 @@ export const DEFAULT_TIMEOUT_MS = 20000
 export class ApiError extends Error {
   status: number
   code: string | null
+  readiness?: { status: 'ready' | 'not_ready'; checks: { database: boolean; rag: boolean; llm_config: boolean } }
 
   constructor(message: string, status: number, code: string | null) {
     super(message)
@@ -82,11 +83,18 @@ export const apiRequest = async <T>(
         return null
       })
       const code = codeOf(body)
-      throw new ApiError(
-        humanizeApiError(code, fallback),
-        response.status,
-        code
-      )
+      const error = new ApiError(humanizeApiError(code, fallback), response.status, code)
+      // Keep only readiness booleans, never arbitrary response bodies or input values.
+      const probe = body as { status?: unknown; checks?: Record<string, unknown> } | null
+      if (path === '/ready' && ['ready', 'not_ready'].includes(String(probe?.status)) &&
+          ['database', 'rag', 'llm_config'].every((k) => typeof probe?.checks?.[k] === 'boolean')) {
+        error.readiness = { status: probe!.status as 'ready' | 'not_ready', checks: {
+          database: probe!.checks!.database as boolean,
+          rag: probe!.checks!.rag as boolean,
+          llm_config: probe!.checks!.llm_config as boolean,
+        } }
+      }
+      throw error
     }
 
     if (response.status === 204) return undefined as T
