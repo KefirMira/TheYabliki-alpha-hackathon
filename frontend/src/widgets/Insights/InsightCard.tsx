@@ -35,7 +35,7 @@ const InsightCard = ({
 
   return (
     <Link
-      to={`/pulse/insights/${insight.id}`}
+      to={`/pulse/insights/${insight.parentInsightId ?? insight.id}`}
       className="flex h-full min-w-0 flex-col gap-4 rounded-3xl bg-white p-5 transition-shadow hover:shadow-[0_8px_24px_rgba(18,19,22,0.08)]"
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
@@ -73,12 +73,18 @@ const InsightCard = ({
           {insight.title}
         </h3>
         {insight.meaning && (
-          <p className="truncate text-sm leading-5 text-ink-2">
+          <p className={cn('text-sm leading-5 text-ink-2', insight.parentInsightId ? 'line-clamp-4' : 'truncate')}>
             {insight.meaning}
           </p>
         )}
       </div>
 
+      {insight.parentInsightId && <div className="text-xs leading-5 text-ink-2">
+        <p>Компания: {insight.companyName}</p>
+        <p>Фрагмент сохранённого ответа LLM, не новый инсайт. Финансовая достоверность не подтверждена.</p>
+        <p>Исходный инсайт #{insight.parentInsightId} · источники и журнал: evidence {insight.evidenceCount}, шагов {insight.traceSteps}.</p>
+        <p>Источники относятся ко всему анализу и не доказывают автоматически этот пункт.</p>
+      </div>}
       <div className="mt-auto flex min-w-0 items-center gap-1.5">
         <span className="flex-1" />
         {insight.isNew && (

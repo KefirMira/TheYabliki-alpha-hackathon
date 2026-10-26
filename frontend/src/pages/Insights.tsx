@@ -1,3 +1,4 @@
+import { useSavedPilotCategories } from '@/hooks/useSavedPilotCategories'
 import { useState } from 'react'
 import { ArrowUpDown, Bookmark, Loader2, Plus, RotateCw } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -9,7 +10,7 @@ import { cn } from '@/lib/utils'
 import Segmented from '@/shared/ui/Segmented'
 import { useAppDispatch, useAppSelector } from '@/store/hooks/redux'
 import type { PulseKind } from '@/store/models/IPulse'
-import { selectHiddenIds, selectPulseInsights } from '@/store/selectors/pulse'
+import { selectHiddenIds, selectPulseInsights, selectCompanyTitle } from '@/store/selectors/pulse'
 import { getInsightsFeed } from '@/store/service/Insights/getInsightsFeed'
 import { refreshInsightsFeed } from '@/store/service/Insights/refreshInsightsFeed'
 import {
@@ -55,7 +56,10 @@ const Insights = () => {
     refreshedAt,
   } = useAppSelector((state) => state.insights)
   const [refreshing, setRefreshing] = useState(false)
-  const insights = useAppSelector(selectPulseInsights)
+  const sourceInsights = useAppSelector(selectPulseInsights)
+  const companyName = useAppSelector(selectCompanyTitle)
+  const categories = useSavedPilotCategories(companyId, companyName, sourceInsights)
+  const insights = categories.items
 
   const filters = filtersFromParams(params)
   const { items, counts } = filterFeed(insights, filters, favorites)
@@ -241,6 +245,8 @@ const Insights = () => {
         </div>
       )}
 
+      {categories.loading && <p role="status">Загружаем риски и возможности из сохранённых анализов…</p>}
+      {categories.error && <p role="alert">{categories.error}</p>}
       {renderFeed()}
 
       {nextCursor && !loadingList && (

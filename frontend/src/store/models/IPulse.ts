@@ -14,6 +14,10 @@ export type RelevanceLevel = 'high' | 'medium' | 'low'
 export interface IPulseInsight {
   id: string
   kind: PulseKind
+  parentInsightId?: string
+  companyName?: string
+  evidenceCount?: number
+  traceSteps?: number
   /** Релевантность словами (API); unknown не показываем. */
   relevanceLevel?: RelevanceLevel
   title: string
