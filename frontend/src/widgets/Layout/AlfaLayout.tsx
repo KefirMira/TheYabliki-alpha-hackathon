@@ -1,4 +1,4 @@
-import { SAVED_PILOT_COMPANY } from '@/shared/constants/savedPilot'
+import { isSavedPilotCompany } from '@/shared/constants/savedPilot'
 import { useAppSelector } from '@/store/hooks/redux'
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
@@ -17,7 +17,7 @@ import ServiceStatusBanner from './ServiceStatusBanner'
  */
 const AlfaLayout = () => {
   const pilot = useAppSelector(
-    (state) => state.company.currentCompanyId === SAVED_PILOT_COMPANY
+    (state) => isSavedPilotCompany(state.company.currentCompanyId)
   )
   usePulseData()
   useFeedPolling()

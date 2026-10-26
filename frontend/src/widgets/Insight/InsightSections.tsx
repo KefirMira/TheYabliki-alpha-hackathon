@@ -190,7 +190,7 @@ export const Sources = ({ detail }: { detail: IInsightDetail }) => {
               </span>
               <span className="flex min-w-0 flex-col gap-px">
                 <span className="truncate text-[15px] font-semibold">
-                  {source.name}
+                  {source.url ? <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">{source.name}</a> : source.name}
                 </span>
                 {source.description && (
                   <span className="truncate text-[13px] text-ink-3">

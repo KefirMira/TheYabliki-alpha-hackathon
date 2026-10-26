@@ -4,7 +4,7 @@ WORKDIR /app
 COPY requirements-runtime.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=120 -r requirements-runtime.txt && pip check
 RUN useradd --create-home --uid 10001 backend
-COPY main.py settings.py saved_pilot_demo.py ./
+COPY main.py settings.py saved_pilot_demo.py pilot_collection_demo.py ./
 COPY api ./api
 COPY db ./db
 COPY repositories ./repositories
@@ -12,6 +12,8 @@ COPY schemas ./schemas
 COPY services ./services
 COPY company_import ./company_import
 COPY fixtures/gateway_macro_v1.json fixtures/saved_llm_pilot_v1.json ./fixtures/
+COPY fixtures/pilot_collection_inputs_v1.json fixtures/pilot_collection_preflight_v1.json ./fixtures/
+COPY fixtures/saved_pilot_collection_v1.json ./fixtures/
 USER backend
 EXPOSE 8000
 CMD ["python","-B","-m","uvicorn","main:app","--host","0.0.0.0","--port","8000","--no-access-log"]

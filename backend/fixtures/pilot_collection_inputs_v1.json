@@ -1,0 +1,402 @@
+{
+  "version": "pilot-collection-inputs-v1",
+  "synthetic": true,
+  "reviewed_at": "2026-10-26",
+  "companies": [
+    {
+      "source_id": "SYNTH-COLLECTION-METAL",
+      "display_name": "Учебная металлургия",
+      "context": {
+        "version": "company-context-v1",
+        "facts": {
+          "industry": {
+            "value": "Синтетическое металлургическое производство",
+            "origin": "approved-synthetic-fixture"
+          },
+          "okved_code": {
+            "value": "24.10",
+            "origin": "approved-synthetic-fixture"
+          },
+          "credit_product": {
+            "value": true,
+            "origin": "approved-synthetic-fixture"
+          },
+          "export_activity": {
+            "value": true,
+            "origin": "approved-synthetic-fixture"
+          },
+          "raw_materials": {
+            "value": "металлолом и сплавы; состав затрат неизвестен",
+            "origin": "approved-synthetic-fixture"
+          },
+          "export_destinations": {
+            "value": "неизвестны",
+            "origin": "approved-synthetic-fixture"
+          }
+        },
+        "computed": {},
+        "missing": [
+          "revenue",
+          "revenue_currency",
+          "revenue_year",
+          "debt",
+          "credit_terms",
+          "contract_prices",
+          "counterparty_names",
+          "eligibility_for_support"
+        ],
+        "model_assumptions": []
+      }
+    },
+    {
+      "source_id": "SYNTH-COLLECTION-RETAIL",
+      "display_name": "Учебная розничная сеть",
+      "context": {
+        "version": "company-context-v1",
+        "facts": {
+          "industry": {
+            "value": "Синтетическая розничная торговля продуктами и бытовыми товарами",
+            "origin": "approved-synthetic-fixture"
+          },
+          "okved_code": {
+            "value": "47.11",
+            "origin": "approved-synthetic-fixture"
+          },
+          "store_count": {
+            "value": 12,
+            "origin": "approved-synthetic-fixture"
+          },
+          "perishable_goods": {
+            "value": true,
+            "origin": "approved-synthetic-fixture"
+          },
+          "imported_assortment": {
+            "value": true,
+            "origin": "approved-synthetic-fixture"
+          },
+          "own_logistics": {
+            "value": false,
+            "origin": "approved-synthetic-fixture"
+          }
+        },
+        "computed": {},
+        "missing": [
+          "revenue",
+          "revenue_currency",
+          "revenue_year",
+          "debt",
+          "credit_terms",
+          "contract_prices",
+          "counterparty_names",
+          "eligibility_for_support"
+        ],
+        "model_assumptions": []
+      }
+    },
+    {
+      "source_id": "SYNTH-GATEWAY-MACRO-A",
+      "display_name": "Производство оборудования (синтетическое)",
+      "context": {
+        "version": "company-context-v1",
+        "facts": {
+          "industry": {
+            "value": "Синтетическое производство оборудования",
+            "origin": "approved-synthetic-fixture"
+          },
+          "okved_code": {
+            "value": "28.99",
+            "origin": "approved-synthetic-fixture"
+          },
+          "credit_product": {
+            "value": true,
+            "origin": "approved-synthetic-fixture"
+          },
+          "planned_equipment_import": {
+            "value": true,
+            "origin": "approved-synthetic-fixture"
+          }
+        },
+        "computed": {},
+        "missing": [
+          "credit_exposure",
+          "credit_terms",
+          "revenue_currency",
+          "revenue_year",
+          "equipment_quote_currency",
+          "equipment_contract_terms",
+          "SME_registry_status",
+          "support_eligibility",
+          "region"
+        ],
+        "model_assumptions": []
+      }
+    }
+  ],
+  "sources": [
+    {
+      "key": "cbr-rate-2024",
+      "document": "public-cbr-rate-2024.txt",
+      "url": "https://www.cbr.ru/press/PR/?file=25102024_133000Key.htm",
+      "publisher": "Банк России",
+      "date": "2024-10-25",
+      "event_date": null,
+      "title": "Решение о ключевой ставке",
+      "text": "повысить ключевую ставку на 200 б.п., до 21,00% годовых.",
+      "text_sha256": "0ed4eef9fc6b27f4c34215333a0cbdad76e0ad764660587c7ab47652f7ab157e",
+      "locator": "Первый абзац; Пресс-служба Банка России",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "cbr-demand-2024",
+      "document": "public-cbr-demand-2024.txt",
+      "url": "https://www.cbr.ru/press/PR/?file=25102024_133000Key.htm",
+      "publisher": "Банк России",
+      "date": "2024-10-25",
+      "event_date": null,
+      "title": "Внутренний спрос",
+      "text": "Рост внутреннего спроса значительно опережает возможности расширения предложения товаров и услуг.",
+      "text_sha256": "fccffb93a0e58b141e3ff982b610c19eee28776d1bdb4c65ef890c4496275237",
+      "locator": "Первый абзац; Пресс-служба Банка России",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "ec-steel-2022",
+      "document": "public-ec-steel-2022.txt",
+      "url": "https://finance.ec.europa.eu/news/ukraine-eu-agrees-fourth-package-restrictive-measures-against-russia-2022-03-15_en",
+      "publisher": "European Commission / DG FISMA",
+      "date": "2022-03-15",
+      "event_date": null,
+      "title": "Fourth package of restrictive measures",
+      "text": "A ban on imports of iron and steel products currently under EU safeguard measures",
+      "text_sha256": "9cae291e378d997c64c9d73e5367e3d368aa1cc12aaac976bb2ad135a2fbc196",
+      "locator": "List of restrictive measures; historical description, not current legal advice",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "worldbank-metals-2025",
+      "document": "public-worldbank-metals-2025.txt",
+      "url": "https://www.worldbank.org/en/news/press-release/2025/04/29/commodity-markets-outlook-april-2025-press-release",
+      "publisher": "World Bank",
+      "date": "2025-04-29",
+      "event_date": null,
+      "title": "Commodity Markets Outlook press release",
+      "text": "the price of industrial metals is expected to drop in 2025-26",
+      "text_sha256": "c1c91cccb1f83b2760cd3e7e3fb2e4d3e86665fab18d367639b400fbc2f946bb",
+      "locator": "Paragraph beginning In contrast; forecast at publication, not observed company prices",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "cbr-inflation-2024",
+      "document": "public-cbr-inflation-2024.txt",
+      "url": "https://www.cbr.ru/press/event/?id=21111",
+      "publisher": "Банк России",
+      "date": "2024-10-25",
+      "event_date": null,
+      "title": "Заявление Председателя Банка России",
+      "text": "С сентября рост цен ускорился. Увеличились и инфляционные ожидания.",
+      "text_sha256": "969fa9d1711b3c7d4271b5fdae7aef90954165088eb4ed5a59500386966a13b7",
+      "locator": "Начало выступления; historical macro context",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "unctad-logistics-2024",
+      "document": "public-unctad-logistics-2024.txt",
+      "url": "https://www.unognewsroom.org/teleprompter/en/2395/unctad-press-conference-22-october-2024/7213",
+      "publisher": "UNCTAD / United Nations Office at Geneva",
+      "date": "2024-10-22",
+      "event_date": null,
+      "title": "Review of Maritime Transport 2024 launch",
+      "text": "These disruptions are extending shipping routes, straining supply chains and raising costs",
+      "text_sha256": "a3f7b983568e44e6f5473dc808fde67beeeb8ea831e062bbfcc666bd1ddb100f",
+      "locator": "STORYLINE; exported excerpt page 1 is not a PDF page",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "cbr-fx-2025",
+      "document": "public-cbr-fx-2025.txt",
+      "url": "https://www.cbr.ru/dkp/mp_dec/decision_key_rate/summary_key_rate_12052025/",
+      "publisher": "Банк России",
+      "date": "2025-05-12",
+      "event_date": null,
+      "title": "Резюме обсуждения ключевой ставки",
+      "text": "Рубль значительно укрепился в 1к25",
+      "text_sha256": "b5d9452b97e64caf9b20061f361cacc988b09c3fcb36b61d917671c5e25c6f00",
+      "locator": "Раздел о внешних условиях; publication/update 12.05.2025",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "msp-leasing",
+      "document": "public-msp-leasing.txt",
+      "url": "https://corpmsp.ru/to-business/lizingovaya-podderzhka/",
+      "publisher": "Корпорация МСП",
+      "date": null,
+      "event_date": "2025-03-17",
+      "title": "Лизинг для бизнеса",
+      "text": "микро- и малые предприятия во всех регионах России, ведущие деятельность по перечню кодов ОКВЭД",
+      "text_sha256": "3432584366d3ef3a811738616b2b47d1e1dca99060d9d88c595f1e02597c34de",
+      "locator": "Для приоритетных отраслей / Получатели; page publication date unknown",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    },
+    {
+      "key": "mintrans-leasing-2025",
+      "document": "public-mintrans-leasing-2025.txt",
+      "url": "https://mintrans.gov.ru/press-center/branch-news/6436",
+      "publisher": "Минтранс России; сообщение о программе Корпорации МСП",
+      "date": "2025-03-17",
+      "event_date": null,
+      "title": "Льготное лизинговое финансирование",
+      "text": "Корпорация МСП запустила новые продукты льготного лизингового финансирования для малого бизнеса.",
+      "text_sha256": "1b2771880cbc4398823264a8cdec22a743cbf2bfd1158869369b2431977d6be9",
+      "locator": "Первый абзац; dated official notice, eligibility is not established",
+      "origin_format": "HTML",
+      "export_format": "TXT",
+      "page": 1,
+      "page_is_exported_excerpt": true,
+      "reviewed_at": "2026-10-26",
+      "verification": "PUBLIC_PRIMARY_EXCERPT_REVIEWED",
+      "rights_note": "Short attributed excerpt only; no logos, full page, private dataset or PDF. No endorsement."
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "metal-rate",
+      "company_id": "SYNTH-COLLECTION-METAL",
+      "title": "Металлургия: ужесточение денежно-кредитных условий",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, стоимость нового финансирования возрастает. Оценить уязвимость оборотного капитала и инвестиционного цикла без выдуманных условий кредита.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "cbr-rate-2024",
+        "cbr-demand-2024"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "metal-export",
+      "company_id": "SYNTH-COLLECTION-METAL",
+      "title": "Металлургия: ограничения доступа на экспортный рынок",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, ограничения импорта стали на внешнем рынке затрагивают часть товарных категорий. Направления экспорта и коды продукции компании неизвестны; применимость ограничений не установлена.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "ec-steel-2022"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "metal-inputs",
+      "company_id": "SYNTH-COLLECTION-METAL",
+      "title": "Металлургия: изменение стоимости сырья",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, меняются цены закупаемых материалов и металлопроката. Оценить разнонаправленные эффекты для затрат, запасов и отпускных цен; ценовых условий компании нет.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "worldbank-metals-2025"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "retail-inflation",
+      "company_id": "SYNTH-COLLECTION-RETAIL",
+      "title": "Розница: ускорение инфляции",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, поставщики пересматривают прайс-листы при росте цен. Оценить ассортимент, оборачиваемость и ценовые решения сети, не объявляя рост номинального чека ростом спроса.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "cbr-inflation-2024"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "retail-demand",
+      "company_id": "SYNTH-COLLECTION-RETAIL",
+      "title": "Розница: охлаждение потребительского спроса",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, покупатели переходят к более экономным покупкам. Оценить отличие продовольственного и непродовольственного ассортимента; фактических продаж сети не предоставлено.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "cbr-demand-2024"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "retail-logistics",
+      "company_id": "SYNTH-COLLECTION-RETAIL",
+      "title": "Розница: удлинение логистических маршрутов",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, задерживаются международные поставки части ассортимента. Оценить наличие товаров и риски порчи, не распространяя мировой показатель на все поставки сети.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "unctad-logistics-2024"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "production-fx-equipment",
+      "company_id": "SYNTH-GATEWAY-MACRO-A",
+      "title": "Производство: валютный курс и стоимость оборудования",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, меняется курс рубля перед планируемой закупкой импортного оборудования. Валюта и дата котировки поставщика неизвестны; удешевление или окупаемость сделки не установлены.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "cbr-fx-2025"
+      ],
+      "synthetic": true
+    },
+    {
+      "scenario_id": "production-support",
+      "company_id": "SYNTH-GATEWAY-MACRO-A",
+      "title": "Производство: проверка доступа к господдержке",
+      "news": "Учебный сценарий, не реальное сообщение: Предположим, предприятие рассматривает льготный лизинг нового оборудования. Проверить необходимые критерии и документы. Статус МСП, доступность лимитов и одобрение заявки неизвестны.",
+      "scenario_date": "2026-10-26",
+      "source_keys": [
+        "mintrans-leasing-2025",
+        "msp-leasing"
+      ],
+      "synthetic": true
+    }
+  ],
+  "legacy_artifact_sha256": "5c75a2d975712f20303c065adaf64d69337d1812cc6738aa49cc23a2c14a243f",
+  "release_status": "PREPARATION_ONLY_NO_REAL_CALL_AUTHORIZATION"
+}

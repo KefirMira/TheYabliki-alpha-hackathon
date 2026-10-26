@@ -1,3 +1,17 @@
+# Расширенная saved-pilot коллекция — v1.29.0
+
+- 3 синтетические компании, по3 сохранённых настоящих инсайта:9 всего.
+- Чистый Docker build/Compose без .env: PASS; PostgreSQL/backend/frontend healthy, seed exit0.
+- Обновление отдельного тома v1.28.2: PASS, исходный анализ/evidence/trace и посторонняя запись сохранены.
+- Повторный seed: created0 / unchanged8, без новых LLM-вызовов и дубликатов.
+- nginx HTTP: 50 проверок PASS на чистой и upgrade-копии.
+- Browser: 3 компании ×3 инсайта, ссылки, trace, reviewer; console errors/warnings0.
+- Backend109 профильных тестов PASS; frontend14 PASS, TypeScript/build PASS.
+- Достоверность финансовых выводов не подтверждена; источники исторические, не банковские PDF.
+- Подробнее: [SAVED_PILOT_COLLECTION.md](SAVED_PILOT_COLLECTION.md).
+
+Ниже сохранены исторические результаты предыдущих релизов, а не текущий объём коллекции.
+
 # Публичный saved-pilot — v1.28.0
 
 Проверен отдельный запуск из clean-context: отслеживаемые файлы HEAD плюс только

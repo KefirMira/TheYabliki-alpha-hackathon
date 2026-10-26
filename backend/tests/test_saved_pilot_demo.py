@@ -71,7 +71,7 @@ def test_noninteractive_seed_uses_existing_guarded_import(monkeypatch, capsys):
     password = 'Only-synthetic-test-password'
     monkeypatch.setenv('SAVED_PILOT_DEMO_PASSWORD', password)
     monkeypatch.setenv('SAVED_PILOT_DATABASE_URL', 'synthetic-target')
-    with patch('saved_pilot_demo.import_pilot', new_callable=AsyncMock,
+    with patch('saved_pilot_demo.Path.exists',return_value=False), patch('saved_pilot_demo.import_pilot', new_callable=AsyncMock,
                return_value={'state':'UNCHANGED','new_llm_requests':0}) as dispatch:
         assert main(['--expected-database','test_saved_pilot_demo','--apply',
                      '--confirm-isolated','--password-env']) == 0

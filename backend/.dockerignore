@@ -36,3 +36,9 @@
 !fixtures/submission_rag/**
 
 !Dockerfile.saved-pilot
+
+!pilot_collection_demo.py
+!fixtures/pilot_collection_inputs_v1.json
+!fixtures/pilot_collection_preflight_v1.json
+
+!fixtures/saved_pilot_collection_v1.json

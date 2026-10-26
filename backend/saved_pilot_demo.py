@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import copy
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import getpass
 import hashlib
@@ -81,7 +82,12 @@ async def fingerprint(c):
     return digest.hexdigest()
 
 
-async def import_pilot(value, expected_database, password=None, *, apply=False):
+@asynccontextmanager
+async def _existing_connection(connection):
+    yield connection
+
+
+async def import_pilot(value, expected_database, password=None, *, apply=False, _connection=None):
     url = target_url(value, expected_database)
     data, bundle = approved()
     if apply and (not isinstance(password, str) or not 12 <= len(password) <= 256):
@@ -89,7 +95,7 @@ async def import_pilot(value, expected_database, password=None, *, apply=False):
     engine = create_async_engine(url, poolclass=NullPool, hide_parameters=True,
                                  connect_args={'timeout': 5, 'command_timeout': 30})
     try:
-        async with engine.begin() as c:
+        async with (engine.begin() if _connection is None else _existing_connection(_connection)) as c:
             await c.execute(text('SELECT pg_advisory_xact_lock(1251001)'))
             marker = await c.scalar(text("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=current_database()"))
             if marker != MARKER:
@@ -217,8 +223,14 @@ def main(argv=None):
         if args.verify_backend_connection:
             asyncio.run(verify_backend_connection(os.environ.get('SAVED_PILOT_DATABASE_URL', ''),
                                                   args.expected_database))
-        result = asyncio.run(import_pilot(os.environ.get('SAVED_PILOT_DATABASE_URL', ''),
-                            args.expected_database, password, apply=args.apply))
+        if args.apply and (Path(__file__).with_name('fixtures')/'saved_pilot_collection_v1.json').exists():
+            # Future reviewed real export only. No file/pin exists in preparation.
+            from pilot_collection_demo import import_approved_collection
+            result = asyncio.run(import_approved_collection(
+                os.environ.get('SAVED_PILOT_DATABASE_URL', ''), args.expected_database, password))
+        else:
+            result = asyncio.run(import_pilot(os.environ.get('SAVED_PILOT_DATABASE_URL', ''),
+                                args.expected_database, password, apply=args.apply))
         print(json.dumps(result))
         return 0
     except BackendDatabaseCheckFailed as error:

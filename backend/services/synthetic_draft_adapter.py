@@ -46,9 +46,11 @@ def strict_object(pairs):
 
 class SyntheticDraftAdapter:
     """Injected clients are local test doubles. Real client creation is explicit and opt-in only."""
+    limits_type = DraftLimits
+
     def __init__(self, fake_client, *, limits=None):
         self._client = fake_client
-        self.limits = DraftLimits.model_validate((limits or DraftLimits()).model_dump())
+        self.limits = self.limits_type.model_validate((limits or self.limits_type()).model_dump())
         self.transport = 'fake'
         self.requests = 0
         self.usage = None
@@ -68,7 +70,7 @@ class SyntheticDraftAdapter:
         from settings import ai_disabled_reason
         if ai_disabled_reason():
             raise DraftStopped('AI_DISABLED_IN_DEMO')
-        selected_limits=DraftLimits.model_validate((limits or DraftLimits()).model_dump())
+        selected_limits=cls.limits_type.model_validate((limits or cls.limits_type()).model_dump())
         from openai import AsyncOpenAI, DefaultAsyncHttpxClient
         result=cls(AsyncOpenAI(api_key=api_key,base_url=BASE_URL,max_retries=0,
             timeout=selected_limits.request_seconds,

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { mapInsightCard, mapFeedItem } from '@/shared/api/mappers/pulseMappers'
 import type { IInsightCard } from '@/store/models/IInsight'
 import { SavedPilotNotice } from './SavedPilotNotice'
-import { FinancialReviewSection } from './InsightSections'
+import { FinancialReviewSection, Sources } from './InsightSections'
 const artifact = JSON.parse(
   readFileSync(
     path.resolve(process.cwd(), '../backend/fixtures/saved_llm_pilot_v1.json'),
@@ -98,5 +98,63 @@ describe('saved synthetic pilot', () => {
         },
       }).detail.savedPilot
     ).toBeUndefined()
+  })
+})
+
+
+describe('prepared collection labels', () => {
+  const collectionCard = (mode: string, url = 'https://www.cbr.ru/press/') => ({
+    ...card, company_id: 'SYNTH-COLLECTION-METAL',
+    validation: { passed: false, warnings: ['SYNTHETIC_COMPANY_HYPOTHETICAL_NEWS'],
+      financial_review: artifact.financial_review,
+      saved_pilot_collection_import: { mode, model: mode === 'FAKE_TEST_ONLY' ? 'fake-sdk' : 'deepseek/deepseek-v4.1-flash',
+        generated_at: '2026-10-25T10:00:00Z', imported_at: '2026-10-26T10:00:00Z', scenario_id: 'metal-rate' } },
+    sources: [{ id: 1, document: 'public-cbr.txt', page: 1, chunk_id: 1, origin_url: url,
+      origin_publisher: 'Банк России', page_is_exported_excerpt: true,
+      provenance: { publisher: null, attribution_status: 'UNKNOWN' } }],
+  })
+  it('never labels fake SDK content as a real model answer', () => {
+    const { detail } = mapInsightCard(collectionCard('FAKE_TEST_ONLY'))
+    render(<SavedPilotNotice detail={detail} />)
+    expect(screen.getByText(/Технический fake SDK тест/)).toBeInTheDocument()
+    expect(screen.queryByText(/Сохранённый настоящий ответ/)).not.toBeInTheDocument()
+    expect(detail.bank).toBeNull()
+  })
+  it('keeps generation/import dates separate and renders public source links', () => {
+    const { detail } = mapInsightCard(collectionCard('REAL_SYNTHETIC'))
+    render(<><SavedPilotNotice detail={detail} /><Sources detail={detail} /></>)
+    expect(screen.getByText(/Сохранённый настоящий ответ deepseek/)).toBeInTheDocument()
+    expect(screen.getByText(/Генерация: 2026-10-25.*Импорт: 2026-10-26/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'public-cbr.txt' })).toHaveAttribute('href', 'https://www.cbr.ru/press/')
+    expect(detail.sources[0].description).toContain('не страница PDF')
+    expect(detail.bank).toBeNull()
+    expect(mapFeedItem(collectionCard('REAL_SYNTHETIC')).updated).toContain('Импорт сохранённого результата')
+  })
+  it('rejects unsafe links and unknown collection mode', () => {
+    const { detail } = mapInsightCard(collectionCard('unknown', 'javascript:alert(1)'))
+    expect(detail.collectionPilot).toBeUndefined()
+    expect(detail.sources[0].url).toBeUndefined()
+  })
+})
+
+
+describe('approved eight real collection records', () => {
+  const release = JSON.parse(readFileSync(path.resolve(process.cwd(), '../backend/fixtures/saved_pilot_collection_v1.json'), 'utf8'))
+  it.each(release.records)('preserves real words, reviewer and trace for $scenario_id', (record) => {
+    const { detail } = mapInsightCard({ ...card, ...record.normalized,
+      summary: record.normalized.summary, sources: [],
+      validation: { passed: false, financial_review: record.financial_review,
+        orchestration: record.orchestration,
+        saved_pilot_collection_import: { scenario_id: record.scenario_id, mode: record.mode,
+          model: record.model, generated_at: record.generated_at, imported_at: '2026-10-26',
+          content_sha256: record.content_sha256, expert_review: record.expert_review } } })
+    expect(detail.impact).toBe(record.normalized.summary)
+    expect(detail.financialReview?.findings).toHaveLength(record.financial_review.findings.length)
+    expect(detail.collectionPilot?.events).toHaveLength(6)
+    render(<><SavedPilotNotice detail={detail} /><FinancialReviewSection detail={detail} /></>)
+    expect(screen.getByText(/Сохранённый журнал анализа/)).toBeInTheDocument()
+    expect(screen.getByText(/Компании и новости синтетические/)).toBeInTheDocument()
+    expect(screen.getByText('Финансовая достоверность не подтверждена', { exact: true })).toBeInTheDocument()
+    expect(screen.getByText(/Оговорки экспертного просмотра/)).toBeInTheDocument()
   })
 })

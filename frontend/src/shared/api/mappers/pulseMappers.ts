@@ -1,4 +1,4 @@
-import { SAVED_PILOT_COMPANY } from '@/shared/constants/savedPilot'
+import { isSavedPilotCompany } from '@/shared/constants/savedPilot'
 import { format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
@@ -50,7 +50,7 @@ export const mapFeedItem = (
     item.relevance && item.relevance !== 'unknown' ? item.relevance : undefined,
   title: item.summary?.trim() || 'Инсайт без описания',
   updated:
-    (item.company_id === SAVED_PILOT_COMPANY
+    (isSavedPilotCompany(item.company_id)
       ? 'Импорт сохранённого результата'
       : 'Анализ') +
     ' от ' +
@@ -217,6 +217,27 @@ const savedPilotOf = (card: IInsightCard): IInsightDetail['savedPilot'] => {
   }
 }
 
+const collectionPilotOf = (card: IInsightCard): IInsightDetail['collectionPilot'] => {
+  const value = card.validation.saved_pilot_collection_import as Record<string, unknown> | undefined
+  if (!value || !['FAKE_TEST_ONLY', 'REAL_SYNTHETIC'].includes(String(value.mode))) return undefined
+  if (!['model', 'generated_at', 'imported_at', 'scenario_id'].every((k) => typeof value[k] === 'string')) return undefined
+  return { mode: value.mode as 'FAKE_TEST_ONLY' | 'REAL_SYNTHETIC', model: value.model as string,
+    generatedAt: value.generated_at as string, importedAt: value.imported_at as string,
+    scenarioId: value.scenario_id as string,
+    contentSha256: typeof value.content_sha256 === 'string' ? value.content_sha256 : undefined,
+    usage: (card.validation.orchestration as { usage?: Record<string, number> } | undefined)?.usage,
+    events: ((card.validation.orchestration as { events?: { tool: string; reason: string }[] } | undefined)?.events ?? [])
+      .filter((e) => typeof e.tool === 'string' && typeof e.reason === 'string'),
+    expertNotes: ((value.expert_review as { notes?: unknown[] } | undefined)?.notes ?? [])
+      .filter((n): n is string => typeof n === 'string') }
+}
+
+const publicSourceUrl = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined
+  try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : undefined }
+  catch { return undefined }
+}
+
 /** Карточка API → шапка инсайта и содержимое страницы. */
 export const mapInsightCard = (
   card: IInsightCard,
@@ -245,9 +266,11 @@ export const mapInsightCard = (
       actions: card.recommendations,
       sources: card.sources.map((source) => ({
         name: source.document ?? 'Источник',
+        url: publicSourceUrl(source.origin_url),
         description: [
           'Источник ' + String(source.id),
-          source.page && `стр. ${source.page}`,
+          source.page_is_exported_excerpt === true ? 'HTML → TXT-фрагмент; не страница PDF' : source.page && `стр. ${source.page}`,
+          typeof source.origin_publisher === 'string' ? source.origin_publisher : undefined,
           source.date,
         ]
           .filter(Boolean)
@@ -261,6 +284,7 @@ export const mapInsightCard = (
       confidence,
       financialReview: financialReviewOf(card),
       savedPilot: savedPilotOf(card),
+      collectionPilot: collectionPilotOf(card),
       datasetMode: card.validation.warnings?.includes('DATASET_FAKE_TRANSPORT')
         ? 'fake'
         : card.validation.warnings?.includes('HACKATHON_DATASET_ANALYSIS')

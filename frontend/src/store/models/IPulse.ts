@@ -36,6 +36,7 @@ export interface IBankPosition {
 }
 
 export interface IInsightSource {
+  url?: string
   name: string
   description: string
 }
@@ -59,6 +60,17 @@ export interface IInsightDetail {
   fact: string
   synthetic?: boolean
   datasetMode?: 'fake' | 'organizer'
+  collectionPilot?: {
+    mode: 'FAKE_TEST_ONLY' | 'REAL_SYNTHETIC'
+    model: string
+    generatedAt: string
+    importedAt: string
+    scenarioId: string
+    contentSha256?: string
+    usage?: Record<string, number>
+    events: { tool: string; reason: string }[]
+    expertNotes: string[]
+  }
   savedPilot?: {
     model: string
     pilotDate: string
